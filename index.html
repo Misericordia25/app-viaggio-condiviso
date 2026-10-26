@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6d28d9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Viaggio condiviso</title>
+<!-- Unica libreria esterna: Firebase (login, cloud, sincronizzazione e cache offline) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f4f2fb;--card:#fff;--c2:#f6f3ff;--tx:#1d1736;--mu:#6b6585;--bd:#e4e0f3;--p:#6d28d9;--p2:#db2777;--ok:#059669;--wa:#d97706;--er:#dc2626;--ra:#2563eb;--rs:#059669;--rp:#d97706;--ru:#a855f7;--sh:0 4px 18px rgba(60,30,120,.1)}
+[data-theme=dark]{--bg:#0f0a1e;--card:#1b1530;--c2:#241d3e;--tx:#efeafd;--mu:#a59fc0;--bd:#30284d;--sh:0 4px 18px rgba(0,0,0,.45)}
+html,body{background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+body{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:linear-gradient(120deg,var(--p),var(--p2));color:#fff;box-shadow:var(--sh)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}.brand b{display:block;font-size:17px}.brand small{display:block;opacity:.85;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo{font-size:26px}.hact{display:flex;align-items:center;gap:4px}
+.ib{background:rgba(255,255,255,.18);border:0;color:inherit;width:38px;height:38px;border-radius:12px;font-size:17px;cursor:pointer}
+.mh .ib{background:var(--c2)}
+.dot{width:10px;height:10px;border-radius:50%;background:#9ca3af;margin-right:4px;box-shadow:0 0 0 2px rgba(255,255,255,.5)}.dot.on{background:#34d399}.dot.pend{background:#fbbf24}
+main{max-width:640px;margin:0 auto;padding:14px}
+.card{background:var(--card);border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:var(--sh)}
+.card2{background:var(--c2);border-radius:14px;padding:10px;margin:8px 0;display:block;width:100%}
+h2{font-size:20px;margin-bottom:6px}h3{font-size:15px;margin-bottom:8px}
+.mu{color:var(--mu)}.sm{font-size:12.5px}.c{text-align:center}.f1{flex:1;min-width:0}.hidden{display:none!important}
+label{display:block;font-size:13px;color:var(--mu);margin:8px 0}
+input,select,textarea{display:block;width:100%;margin-top:4px;padding:11px 12px;border:1.5px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;font-size:16px}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--p)}
+.btn{border:0;border-radius:14px;padding:12px 16px;font:inherit;font-weight:600;background:var(--c2);color:var(--tx);cursor:pointer;flex:1}
+.btn.pri{background:linear-gradient(120deg,var(--p),var(--p2));color:#fff}.btn.big{width:100%;padding:15px;font-size:17px;margin-top:8px}.btn.er{color:var(--er)}.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 8px}
+.seg{display:flex;background:var(--c2);border-radius:14px;padding:4px;margin-bottom:12px;gap:4px}
+.seg button{flex:1;border:0;background:none;padding:9px 4px;border-radius:10px;font:inherit;font-size:13px;color:var(--mu);cursor:pointer}
+.seg button.on{background:var(--card);color:var(--p);font-weight:700;box-shadow:var(--sh)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:8px 14px;font:inherit;cursor:pointer}
+.chip.on{background:var(--p);border-color:var(--p);color:#fff}
+.hero{font-size:54px;text-align:center}.auth{margin-top:20px}.auth h2,.auth>p.mu{text-align:center}.auth>p.mu{margin-bottom:12px}
+.drv{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff}.drv small,.drv .mu{color:rgba(255,255,255,.85)}
+.tip{border-left:5px solid var(--ok)}.warn{border-left:5px solid var(--wa)}
+.go{display:flex;flex-direction:column;align-items:center;justify-content:center;width:190px;height:190px;margin:18px auto;border-radius:50%;border:0;background:radial-gradient(circle at 30% 30%,#34d399,#059669);color:#fff;font:inherit;font-size:44px;font-weight:800;box-shadow:0 10px 30px rgba(5,150,105,.45),inset 0 -6px 0 rgba(0,0,0,.15);cursor:pointer}
+.go small{font-size:13px;font-weight:500}.go:active{transform:scale(.97)}
+.meter{background:#0b0716;color:#fff;border-radius:22px;padding:18px;box-shadow:var(--sh);margin-bottom:12px}
+.mk{text-align:center;font-variant-numeric:tabular-nums}.mk span{font-size:64px;font-weight:800;color:#fde047;letter-spacing:-1px;text-shadow:0 0 18px rgba(253,224,71,.35)}.mk small{font-size:18px;margin-left:6px;color:#aaa}
+.mrow,.mrow3{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;text-align:center}.mrow3{grid-template-columns:repeat(3,1fr)}
+.mrow div,.mrow3 div{background:rgba(255,255,255,.07);border-radius:12px;padding:8px}
+.mrow small,.mrow3 small{display:block;color:#aaa;font-size:11px;text-transform:uppercase}.mrow b{font-size:24px;font-variant-numeric:tabular-nums}.mrow3 b{font-size:15px}
+.ok{color:#34d399}.wa{color:#f59e0b}.er{color:#f87171}
+.road{margin-top:12px;text-align:center;padding:8px;border-radius:12px;font-weight:700}
+.arr{display:inline-block;transition:transform .3s;color:#fde047}
+.stop{width:100%;padding:18px;border:0;border-radius:18px;background:var(--er);color:#fff;font:inherit;font-size:20px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(220,38,38,.35)}
+.kb{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--bd);margin:6px 0}.kb span{display:block;height:100%}
+.ra{background:var(--ra)}.rs{background:var(--rs)}.rp{background:var(--rp)}.ru{background:var(--ru)}
+.kl{display:flex;flex-wrap:wrap;gap:4px 12px}.kl i,.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
+.leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin-top:6px}
+.bal{border-left:6px solid var(--ok)}.bal.bMid{border-left-color:var(--wa)}.bal.bBad{border-left-color:var(--er)}.bal.bNone{border-left-color:var(--bd)}
+.big2{font-size:20px;font-weight:800;margin-bottom:4px}
+.rk{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd)}.rk:last-of-type{border:0}
+.pos{font-size:22px;width:30px;text-align:center;font-weight:800;color:var(--mu)}
+.dev{font-weight:800;font-size:16px;min-width:44px;text-align:right}.dPlus{color:var(--ok)}.dMin{color:var(--wa)}
+.dbar{position:relative;height:8px;background:var(--bd);border-radius:5px;margin-top:6px}.dbar span{position:absolute;left:0;top:0;bottom:0;border-radius:5px}.dbar i{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tx)}
+canvas{width:100%;display:block}
+.tr{display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--bd);cursor:pointer}.tr:last-child{border:0}
+.tdate{font-size:12px;color:var(--mu);width:58px;line-height:1.25}
+.lg{padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px}.lg:last-child{border:0}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;background:var(--c2);color:var(--mu);margin-left:4px}
+.tag.neg{background:#fee2e2;color:#b91c1c}.tag.okk{background:#d1fae5;color:#047857}
+nav#tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--card);border-top:1px solid var(--bd);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+nav#tabs button{flex:1;border:0;background:none;font-size:22px;display:flex;flex-direction:column;align-items:center;color:var(--mu);padding:4px;border-radius:12px;cursor:pointer}
+nav#tabs button span{font-size:11.5px;font-weight:600}nav#tabs button.on{color:var(--p);background:var(--c2)}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(10,5,25,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:0 14px calc(18px + env(safe-area-inset-bottom))}
+.mh{position:sticky;top:0;background:var(--bg);display:flex;justify-content:space-between;align-items:center;gap:8px;padding:14px 0 10px;z-index:2}.mh b{font-size:18px}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:#1d1736;color:#fff;padding:11px 16px;border-radius:14px;opacity:0;transition:.25s;z-index:60;max-width:90vw;font-size:14px;pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.kv div{background:var(--c2);border-radius:12px;padding:8px}.kv small{display:block;color:var(--mu);font-size:11px}.kv b{font-size:15px}
+.steps{padding-left:20px;font-size:14px}.steps li{margin:4px 0}
+.info h3{margin-top:14px}.info p,.info li{font-size:14px;margin:4px 0}.info ul{padding-left:18px}
+code{background:var(--c2);padding:1px 5px;border-radius:5px;font-size:12px}
+#print{display:none}
+@media print{body{background:#fff;color:#000;padding:0}body>*:not(#print){display:none!important}#print{display:block;font:11px/1.4 Arial,sans-serif;color:#000}
+#print h1{font-size:18px}#print h2{font-size:14px;margin:14px 0 6px;color:#6d28d9}#print table{width:100%;border-collapse:collapse}#print th,#print td{border:1px solid #ccc;padding:4px;text-align:left}#print th{background:#f1ecff}
+.ph{display:flex;justify-content:space-between;border-bottom:3px solid #6d28d9;padding-bottom:8px}.ph .r{text-align:right}.foot{margin-top:14px;color:#666;font-size:10px}@page{margin:12mm}}
+</style>
+</head>
+<body>
+<div id="app">
+ <header><div class="brand"><span class="logo">🚗</span><div class="f1"><b data-t="app"></b><small id="hdSub"></small></div></div>
+  <div class="hact"><span id="net" class="dot"></span><button class="ib" id="bInfo" aria-label="Informazioni">ℹ️</button><button class="ib hidden" id="bSet" aria-label="Impostazioni">⚙️</button><button class="ib hidden" id="bOut" aria-label="Esci">⏻</button></div></header>
+ <main id="main"></main>
+ <nav id="tabs" class="hidden"><button data-tab="viaggio">🚗<span data-t="tViaggio"></span></button><button data-tab="equip">🏆<span data-t="tEquip"></span></button><button data-tab="storico">🗂️<span data-t="tStorico"></span></button></nav>
+</div>
+<div id="modal" class="modal hidden"><div class="sheet"><div class="mh"><b id="mTitle"></b><button class="ib" id="mClose" aria-label="Chiudi">✕</button></div><div id="mBody"></div></div></div>
+<div id="toast"></div>
+<div id="print"></div>
+<script>
+'use strict';
+/* =============================================================================
+   VIAGGIO CONDIVISO – tassametro comparativo per auto a rotazione (2–5 persone)
+   Non divide i costi: verifica che i turni di guida siano equilibrati.
+   Cloud: Firebase Auth + Firestore (cache offline). Copia locale in localStorage.
+   ============================================================================= */
+
+/* ---- 1. CONFIGURAZIONE CLOUD ----
+   Incolla qui il firebaseConfig prima di pubblicare (es. {apiKey:"…",authDomain:"…",projectId:"…",appId:"…"}).
+   Se resta null l'app chiede la configurazione al primo avvio (salvata solo su quel dispositivo). */
+const FB_CONFIG = null;
+
+const VER='1.0.0', DOM='viaggio-condiviso.app', MAXM=5;
+const RULES=`rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signed() { return request.auth != null; }
+    function member(g) { return signed() && request.auth.uid in get(/databases/$(db)/documents/gruppi/$(g)).data.membri; }
+    match /users/{uid} {
+      allow read: if signed();
+      allow write: if signed() && request.auth.uid == uid;
+    }
+    match /gruppi/{g} {
+      allow get: if signed();
+      allow create: if signed() && request.resource.data.membri == [request.auth.uid];
+      allow update: if member(g) || (signed()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['membri'])
+        && request.resource.data.membri.size() == resource.data.membri.size() + 1
+        && request.resource.data.membri.hasAll(resource.data.membri)
+        && request.auth.uid in request.resource.data.membri
+        && request.resource.data.membri.size() <= 5);
+      allow delete: if false;
+      match /{sub=**} { allow read, write: if member(g); }
+    }
+  }
+}`;
+
+/* ---- 2. UTILITÀ ---- */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const LS={g(k,d){try{const v=localStorage.getItem('vc_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},s(k,v){try{localStorage.setItem('vc_'+k,JSON.stringify(v))}catch(e){console.warn('localStorage',e)}},d(k){try{localStorage.removeItem('vc_'+k)}catch(e){}}};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>parseFloat(String(v??'').replace(',','.'))||0,r1=n=>Math.round(n*10)/10,r2=n=>Math.round(n*100)/100,r5=n=>Math.round(n*1e5)/1e5;
+const loc=()=>LANG==='en'?'en-GB':'it-IT';
+const nf=(n,d=2)=>(+n||0).toLocaleString(loc(),{minimumFractionDigits:d,maximumFractionDigits:d});
+const eur=(n,d=2)=>'€ '+nf(n,d),fkm=n=>nf(n,1)+' km';
+const fD=ts=>new Date(ts).toLocaleDateString(loc(),{day:'2-digit',month:'2-digit',year:'2-digit'});
+const fT=ts=>new Date(ts).toLocaleTimeString(loc(),{hour:'2-digit',minute:'2-digit'});
+const fDT=ts=>fD(ts)+' '+fT(ts),p2=n=>String(n).padStart(2,'0');
+const fClock=s=>{s=Math.max(0,Math.round(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h}:${p2(m)}:${p2(s%60)}`:`${m}:${p2(s%60)}`};
+const fHM=s=>{const m=Math.round((s||0)/60);return m<60?m+' min':Math.floor(m/60)+' h '+p2(m%60)};
+const hav=(a,b,c,d)=>{const r=Math.PI/180,x=(c-a)*r,y=(d-b)*r,h=Math.sin(x/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)**2;return 12742e3*Math.asin(Math.sqrt(h))}; // metri
+const dayTs=v=>v?new Date(v+'T00:00:00').getTime():null,stamp=()=>new Date().toISOString().slice(0,10);
+const uid8=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const DEV=LS.g('dev',null)||(()=>{const d='d'+uid8();LS.s('dev',d);return d})();
+const ROADS='aspu'.split(''),ROADI={a:'🛣️',s:'🛤️',p:'🌳',u:'🏘️'},COLS=['#7c3aed','#db2777','#2563eb','#059669','#d97706'];
+const TYS=['accesso','permesso','viaggio','sync','dati','sistema'];
+const PERS=[['7','per_7'],['30','per_30'],['90','per_90'],['year','per_year'],['all','per_all']];
+/* Veicoli: consumi tipici (l, kg o kWh per 100 km) urbano / extraurbano / autostrada */
+const DEFV={benzina:{cu:7.5,ce:5.2,ca:6.4},diesel:{cu:6,ce:4.3,ca:5.4},gpl:{cu:9.5,ce:6.8,ca:8.2},metano:{cu:5.6,ce:3.9,ca:4.8},ibrido:{cu:4.4,ce:4.6,ca:5.9},elettrico:{cu:14,ce:15,ca:19}};
+const UNIT={benzina:'l',diesel:'l',gpl:'l',metano:'kg',ibrido:'l',elettrico:'kWh'};
+const PKEY={benzina:'benzina',diesel:'diesel',gpl:'gpl',metano:'metano',ibrido:'benzina',elettrico:'kwh'};
+const DEFP={benzina:1.8,diesel:1.7,gpl:.75,metano:1.45,kwh:.35};
+const PF=[['benzina','pBenz'],['diesel','pDies'],['gpl','pGpl'],['metano','pMet'],['kwh','pKwh']];
+
+/* ---- 3. LINGUE (dizionario IT/EN) ---- */
+const STEPS_IT=`<li>Apri <b>console.firebase.google.com</b> e crea un progetto (piano gratuito).</li><li><b>Authentication</b> → Inizia → metodo <b>Email/Password</b> → Abilita. In Impostazioni → Domini autorizzati aggiungi il dominio Netlify.</li><li><b>Firestore Database</b> → Crea database (regione europea, modalità produzione).</li><li>Scheda <b>Regole</b>: incolla le regole (pulsante «Copia regole») e premi Pubblica.</li><li>Impostazioni progetto → Le tue app → icona <b>&lt;/&gt;</b> → registra l'app web e copia l'oggetto <code>firebaseConfig</code>.</li><li>Incollalo nel file index.html (costante <code>FB_CONFIG</code>) oppure nella schermata di configurazione.</li>`;
+const STEPS_EN=`<li>Open <b>console.firebase.google.com</b> and create a project (free plan).</li><li><b>Authentication</b> → Get started → <b>Email/Password</b> → Enable. In Settings → Authorized domains add your Netlify domain.</li><li><b>Firestore Database</b> → Create database (EU region, production mode).</li><li><b>Rules</b> tab: paste the rules («Copy rules» button) and Publish.</li><li>Project settings → Your apps → <b>&lt;/&gt;</b> → register the web app and copy <code>firebaseConfig</code>.</li><li>Paste it in index.html (<code>FB_CONFIG</code> constant) or in the setup screen.</li>`;
+const L={it:{
+app:'Viaggio condiviso',tagline:'Il tassametro che tiene in equilibrio i turni in auto',tViaggio:'Viaggio',tEquip:'Equipaggio',tStorico:'Storico',
+login:'Accedi',register:'Registrati',user:'Nome utente',pass:'Password',name:'Nome visualizzato',passNote:'Le password sono gestite e cifrate da Firebase: l\'app non le salva mai.',
+errCred:'Utente o password errati',errUsed:'Nome utente già registrato',errWeak:'Password troppo corta (minimo 6 caratteri)',errNet:'Serve la connessione per questa operazione',errUser:'Nome utente: da 3 a 30 caratteri (lettere, numeri, . _ -)',nameReq:'Inserisci il nome',
+welcome:'Benvenuto',obIntro:'Dichiara il tuo veicolo: serve all\'algoritmo per stimare i consumi reali. Poi crea il gruppo oppure entra con il codice di invito.',
+profile:'Profilo',vehicle:'Veicolo',brand:'Marca',model:'Modello',plate:'Targa',fuelType:'Alimentazione',cons:'Consumi dichiarati',consU:'Urbano',consE:'Extraurb.',consA:'Autostrada',typical:'Usa valori tipici',
+grpNew:'Crea un nuovo gruppo',grpName:'Nome del gruppo',create:'Crea gruppo',grpJoin:'Entra in un gruppo',code:'Codice di invito (6 caratteri)',join:'Entra',errCode:'Codice non valido',errFull:'Gruppo completo (massimo 5)',needNet:'Serve la connessione',loading:'Caricamento…',
+driverToday:'Autista di oggi',you:'tu',nextTurn:'Per equilibrio tocca a',aboard:'A bordo con te',noOthers:'Nessun altro membro. Condividi il codice di invito:',go:'VIA',startTrip:'inizio viaggio',lastTrip:'Ultimo viaggio',
+time:'Tempo',speed:'km/h',avg:'Media km/h',compass:'Bussola',style:'Stile',stop:'■ FINE VIAGGIO',keepOn:'Tieni l\'app aperta e lo schermo acceso sul supporto: con lo schermo spento il GPS si ferma.',
+confirmStop:'Terminare il viaggio?',toConfirm:'Viaggio terminato da confermare',confirmTrip:'Conferma viaggio',tripSummary:'Riepilogo viaggio',
+odoKm:'Km reali da contachilometri (facoltativo)',odoNote:'Se li inserisci sostituiscono i km GPS, mantenendo le proporzioni per tipo di strada.',
+tolls:'Pedaggi',hwSeg:'Tratto autostradale',entry:'Casello di entrata',exit:'Casello di uscita',newToll:'Nuovo casello',tollName:'Nome del casello',tollAmt:'Importo pedaggio €',tollKnown:'✓ Tratta conosciuta: importo appreso dai viaggi precedenti',tollEst:'Tratta nuova: importo stimato, correggilo con lo scontrino (verrà ricordato)',noHw:'Nessun tratto autostradale: nessun pedaggio.',
+note:'Note',discard:'Scarta',save:'Salva',confirmDiscard:'Scartare definitivamente questo viaggio?',saved:'Viaggio salvato',toll:'Casello',
+r_a:'Autostrada',r_s:'Statale',r_p:'Provinciale',r_u:'Urbana',
+al_benzina:'Benzina',al_diesel:'Diesel',al_gpl:'GPL',al_metano:'Metano',al_ibrido:'Ibrido',al_elettrico:'Elettrico',
+resumeQ:'C\'è un viaggio non terminato. Riprendere la registrazione?\n(Annulla = terminalo e vai al riepilogo)',gpsDenied:'Permesso GPS negato: abilitalo nelle impostazioni del browser per registrare i km.',motionDenied:'Sensori di movimento non disponibili: lo stile di guida non verrà calcolato.',noGps:'GPS non disponibile su questo dispositivo',
+per_7:'7 giorni',per_30:'30 giorni',per_90:'3 mesi',per_year:'Anno',per_all:'Tutto',
+balOk:'✅ Turni equilibrati',balMid:'⚖️ Leggero squilibrio',balBad:'⚠️ Da riequilibrare',balNone:'Nessun viaggio nel periodo',fairShare:'quota equa',tripsEach:'viaggi a testa',ranking:'Classifica autisti',trips:'viaggi',
+legendRank:'Barra = quota dei km, tacca = quota equa. Numero a destra = viaggi in più (+) o in meno (−) rispetto alla quota equa. 🚗 più guide · 🛣️ più km · 💶 più economico · 🌿 guida più fluida.',
+chTrips:'Viaggi da autista',chKm:'Km percorsi',chMonth:'Viaggi per mese (ultimi 6)',cmpT:'Autostrada o statale?',cmpHw:'Con autostrada',cmpNo:'Senza autostrada',cmpSave:'Senza autostrada spendi in media',cmpMore:'impiegando in più',perTrip:'in meno a viaggio',pdf:'Report PDF',pdfHint:'Nella finestra di stampa scegli «Salva come PDF»',noData:'Nessun dato',
+hViaggi:'Viaggi',hReg:'Storico azioni',all:'Tutti',from:'Dal',to:'Al',driver:'Autista',type:'Tipo',
+ty_accesso:'Accessi',ty_permesso:'Permessi e sensori',ty_viaggio:'Viaggi',ty_sync:'Sincronizzazione',ty_dati:'Dati',ty_sistema:'Sistema',
+csv:'Esporta CSV',empty:'Nessun elemento',passengers:'Passeggeri',openMaps:'Apri il percorso in Mappe',edit:'Salva correzione',del:'Elimina',confirmDel:'Eliminare questo viaggio?',
+kmTot:'Km totali',pedTot:'Pedaggio totale €',fuelCost:'Carburante',total:'Totale',source:'Fonte km',src_gps:'GPS',src_odometro:'Contachilometri',src_manuale:'Correzione manuale',gapsW:'interruzioni GPS stimate in linea retta',start:'Partenza',end:'Arrivo',duration:'Durata',maxSpeed:'Vel. max',events:'eventi bruschi',
+settings:'Impostazioni',sGroup:'Gruppo',company:'Azienda / sede di lavoro (per i report)',inviteCode:'Codice di invito',copy:'Copia',copied:'Copiato',members:'Membri',leave:'Esci dal gruppo',confirmLeave:'Uscire dal gruppo? I tuoi viaggi restano nello storico del gruppo.',
+sPrices:'Prezzi energia (condivisi dal gruppo)',pBenz:'Benzina €/l',pDies:'Diesel €/l',pGpl:'GPL €/l',pMet:'Metano €/kg',pKwh:'Ricarica €/kWh',tariffa:'Pedaggio stimato €/km',priceNote:'Valori indicativi: aggiornali con i prezzi che pagate davvero. La tariffa €/km vale solo per le tratte non ancora apprese.',
+sApp:'App',lang:'Lingua',theme:'Tema',th_auto:'Automatico',th_light:'Chiaro',th_dark:'Scuro',backup:'Backup',bExp:'Esporta JSON',bImp:'Importa JSON',impQ:'Importare i viaggi dal backup? Quelli già presenti vengono aggiornati solo se il backup è più recente.',impOk:'Importazione completata',impErr:'File non valido',version:'Versione',resetCfg:'Cambia cloud',
+setupT:'Collega il cloud',setupSteps:STEPS_IT,copyRules:'Copia regole',saveCfg:'Salva e avvia',cfgErr:'Configurazione non riconosciuta: servono almeno apiKey e projectId',
+setupNote:'Per non ripetere questo passaggio su ogni telefono, incolla la configurazione nel file index.html (costante FB_CONFIG) prima di pubblicarlo.',
+noFb:'Impossibile caricare il modulo cloud: al primo avvio serve la connessione.',
+info:'Informazioni',period:'Periodo',generated:'Generato il',by:'da',balance:'Equilibrio dei turni',tripList:'Elenco viaggi',dirs:'N,NE,E,SE,S,SO,O,NO',
+logoutQ:'Uscire dall\'account? I dati locali di questo dispositivo verranno rimossi.',tripRun:'C\'è un viaggio in corso: terminalo prima.',saveOk:'Impostazioni salvate',dev:'Scarto',share:'Quota km',
+netOn:'Sincronizzato',netOff:'Offline: dati salvati sul dispositivo',netPend:'Modifiche in attesa di invio',repFoot:'Costi stimati da GPS, consumi dichiarati e prezzi impostati dal gruppo. Documento informativo, non fiscale.'
+},en:{
+app:'Shared Ride',tagline:'The taximeter that keeps car-sharing turns balanced',tViaggio:'Trip',tEquip:'Crew',tStorico:'History',
+login:'Sign in',register:'Sign up',user:'Username',pass:'Password',name:'Display name',passNote:'Passwords are handled and encrypted by Firebase: the app never stores them.',
+errCred:'Wrong username or password',errUsed:'Username already taken',errWeak:'Password too short (min 6 characters)',errNet:'A connection is required',errUser:'Username: 3–30 characters (letters, digits, . _ -)',nameReq:'Enter your name',
+welcome:'Welcome',obIntro:'Declare your vehicle: the algorithm needs it to estimate real consumption. Then create a group or join with an invite code.',
+profile:'Profile',vehicle:'Vehicle',brand:'Make',model:'Model',plate:'Plate',fuelType:'Fuel',cons:'Declared consumption',consU:'Urban',consE:'Extra-urban',consA:'Motorway',typical:'Use typical values',
+grpNew:'Create a new group',grpName:'Group name',create:'Create group',grpJoin:'Join a group',code:'Invite code (6 characters)',join:'Join',errCode:'Invalid code',errFull:'Group is full (max 5)',needNet:'Connection required',loading:'Loading…',
+driverToday:'Today\'s driver',you:'you',nextTurn:'For balance it\'s the turn of',aboard:'On board with you',noOthers:'No other members yet. Share the invite code:',go:'GO',startTrip:'start trip',lastTrip:'Last trip',
+time:'Time',speed:'km/h',avg:'Avg km/h',compass:'Compass',style:'Style',stop:'■ END TRIP',keepOn:'Keep the app open and the screen on in the holder: with the screen off GPS stops.',
+confirmStop:'End the trip?',toConfirm:'Trip ended, to be confirmed',confirmTrip:'Confirm trip',tripSummary:'Trip summary',
+odoKm:'Real km from odometer (optional)',odoNote:'If entered, they replace GPS km keeping the road-type proportions.',
+tolls:'Tolls',hwSeg:'Motorway section',entry:'Entry toll gate',exit:'Exit toll gate',newToll:'New toll gate',tollName:'Toll gate name',tollAmt:'Toll amount €',tollKnown:'✓ Known route: amount learned from previous trips',tollEst:'New route: estimated amount, fix it from the receipt (it will be remembered)',noHw:'No motorway sections: no toll.',
+note:'Notes',discard:'Discard',save:'Save',confirmDiscard:'Discard this trip permanently?',saved:'Trip saved',toll:'Toll gate',
+r_a:'Motorway',r_s:'Main road',r_p:'Provincial',r_u:'Urban',
+al_benzina:'Petrol',al_diesel:'Diesel',al_gpl:'LPG',al_metano:'CNG',al_ibrido:'Hybrid',al_elettrico:'Electric',
+resumeQ:'There is an unfinished trip. Resume recording?\n(Cancel = end it and open the summary)',gpsDenied:'GPS permission denied: enable it in browser settings to record km.',motionDenied:'Motion sensors unavailable: driving style will not be computed.',noGps:'GPS not available on this device',
+per_7:'7 days',per_30:'30 days',per_90:'3 months',per_year:'Year',per_all:'All',
+balOk:'✅ Turns balanced',balMid:'⚖️ Slight imbalance',balBad:'⚠️ Needs rebalancing',balNone:'No trips in this period',fairShare:'fair share',tripsEach:'trips each',ranking:'Driver ranking',trips:'trips',
+legendRank:'Bar = share of km, mark = fair share. Number on the right = trips above (+) or below (−) the fair share. 🚗 most drives · 🛣️ most km · 💶 cheapest · 🌿 smoothest driving.',
+chTrips:'Trips as driver',chKm:'Km driven',chMonth:'Trips per month (last 6)',cmpT:'Motorway or main road?',cmpHw:'With motorway',cmpNo:'Without motorway',cmpSave:'Without motorway you spend on average',cmpMore:'taking extra',perTrip:'less per trip',pdf:'PDF report',pdfHint:'In the print dialog choose «Save as PDF»',noData:'No data',
+hViaggi:'Trips',hReg:'Activity log',all:'All',from:'From',to:'To',driver:'Driver',type:'Type',
+ty_accesso:'Access',ty_permesso:'Permissions & sensors',ty_viaggio:'Trips',ty_sync:'Sync',ty_dati:'Data',ty_sistema:'System',
+csv:'Export CSV',empty:'Nothing here',passengers:'Passengers',openMaps:'Open route in Maps',edit:'Save correction',del:'Delete',confirmDel:'Delete this trip?',
+kmTot:'Total km',pedTot:'Total toll €',fuelCost:'Fuel',total:'Total',source:'Km source',src_gps:'GPS',src_odometro:'Odometer',src_manuale:'Manual fix',gapsW:'GPS gaps estimated in straight line',start:'Start',end:'End',duration:'Duration',maxSpeed:'Max speed',events:'harsh events',
+settings:'Settings',sGroup:'Group',company:'Company / workplace (for reports)',inviteCode:'Invite code',copy:'Copy',copied:'Copied',members:'Members',leave:'Leave group',confirmLeave:'Leave the group? Your trips stay in the group history.',
+sPrices:'Energy prices (shared by the group)',pBenz:'Petrol €/l',pDies:'Diesel €/l',pGpl:'LPG €/l',pMet:'CNG €/kg',pKwh:'Charging €/kWh',tariffa:'Estimated toll €/km',priceNote:'Indicative values: update them with the prices you actually pay. The €/km rate only applies to routes not yet learned.',
+sApp:'App',lang:'Language',theme:'Theme',th_auto:'Automatic',th_light:'Light',th_dark:'Dark',backup:'Backup',bExp:'Export JSON',bImp:'Import JSON',impQ:'Import trips from the backup? Existing ones are updated only if the backup is newer.',impOk:'Import completed',impErr:'Invalid file',version:'Version',resetCfg:'Change cloud',
+setupT:'Connect the cloud',setupSteps:STEPS_EN,copyRules:'Copy rules',saveCfg:'Save and start',cfgErr:'Configuration not recognised: apiKey and projectId are required',
+setupNote:'To avoid repeating this on every phone, paste the configuration into index.html (FB_CONFIG constant) before publishing.',
+noFb:'Cloud module could not be loaded: the first launch needs a connection.',
+info:'Information',period:'Period',generated:'Generated on',by:'by',balance:'Turn balance',tripList:'Trip list',dirs:'N,NE,E,SE,S,SW,W,NW',
+logoutQ:'Sign out? Local data on this device will be removed.',tripRun:'A trip is in progress: end it first.',saveOk:'Settings saved',dev:'Deviation',share:'Km share',
+netOn:'Synced',netOff:'Offline: data saved on the device',netPend:'Changes waiting to be sent',repFoot:'Costs estimated from GPS, declared consumption and group prices. Informative document, not a tax document.'
+}};
+let LANG=LS.g('lang','it');
+const t=k=>(L[LANG]&&L[LANG][k])??L.it[k]??k;
+function i18n(){document.documentElement.lang=LANG;$$('[data-t]').forEach(e=>e.textContent=t(e.dataset.t))}
+
+/* ---- 4. STATO E INTERFACCIA DI BASE ---- */
+const S={user:null,me:null,group:null,gid:null,lg:null,members:{},trips:[],log:[],trip:null,tab:LS.g('tab','viaggio'),hist:'viaggi',per:'30',pax:null,fl:{},un:[],gun:[],pending:false,screen:'',resumed:false};
+let auth=null,db=null;
+const G=()=>db.collection('gruppi').doc(S.gid);
+const main=h=>{$('#main').innerHTML=h};
+function toast(m,ms=2800){const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),ms)}
+function modal(title,html,onOpen){$('#mTitle').textContent=title;$('#mBody').innerHTML=html;$('#modal').classList.remove('hidden');$('.sheet').scrollTop=0;onOpen&&onOpen($('#mBody'))}
+function closeM(){$('#modal').classList.add('hidden');$('#mBody').innerHTML=''}
+function applyTheme(){const m=LS.g('theme','auto');const d=m==='dark'||(m==='auto'&&!!window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light'}
+function shell(app,out){$('#tabs').classList.toggle('hidden',!app);$('#bSet').classList.toggle('hidden',!app);$('#bOut').classList.toggle('hidden',!(app||out));$('#hdSub').textContent=app&&S.group?S.group.nome+' · '+(S.me?.nome||''):'';document.body.style.paddingBottom=app?'':'20px'}
+function updNet(){const d=$('#net');if(!d)return;const on=navigator.onLine;d.className='dot '+(on?(S.pending?'pend':'on'):'');d.title=on?(S.pending?t('netPend'):t('netOn')):t('netOff')}
+const mem=()=>(S.group?.membri||[]).map(u=>({uid:u,...(S.members[u]||{nome:'—'})}));
+const nameOf=u=>S.members[u]?.nome||(u===S.user?.uid?S.me?.nome:'')||'—';
+const myName=()=>S.me?.nome||'';
+const colOf=u=>COLS[Math.max(0,(S.group?.membri||[]).indexOf(u))%5];
+const vehLabel=v=>{v=v||{};const s=[v.marca,v.modello].filter(Boolean).join(' ')+(v.targa?' · '+v.targa:'');return s||'—'};
+let RQ=0;
+function renderAll(){if(RQ)return;RQ=requestAnimationFrame(()=>{RQ=0;if(!S.user||!S.me||!S.me.gruppoId)return;S.screen='app';shell(true);
+ if(!S.group){main(`<div class="card c">${t('loading')}</div>`);return}
+ $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===S.tab));(S.tab==='equip'?rEquip:S.tab==='storico'?rStorico:rViaggio)();updNet()})}
+
+/* ---- 5. STORICO AZIONI (registro) ---- */
+function log(tipo,azione,esito='',det=''){const r={data:Date.now(),uid:auth?.currentUser?.uid||'',nome:myName(),tipo,azione,esito,det:String(det||''),dev:DEV};
+ if(S.gid&&db&&S.user)G().collection('registro').add(r).catch(()=>{});
+ else{const q=LS.g('logq',[]);q.push(r);LS.s('logq',q.slice(-200));S.log.unshift(r)}}
+function flushLogQ(){const q=LS.g('logq',[]);if(!q.length||!S.gid||!S.user)return;LS.d('logq');q.forEach(r=>{r.uid=r.uid||S.user.uid;r.nome=r.nome||myName();G().collection('registro').add(r).catch(()=>{})})}
+
+/* ---- 6. AVVIO, CLOUD E ACCESSO ---- */
+function boot(){applyTheme();i18n();bindStatic();updNet();
+ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+ if(typeof firebase==='undefined'){shell(false);main(`<div class=card>⚠️ ${t('noFb')}</div>`);return}
+ const cfg=FB_CONFIG||LS.g('fbcfg',null);if(!cfg)return showSetup();
+ try{firebase.initializeApp(cfg);auth=firebase.auth();db=firebase.firestore();db.enablePersistence({synchronizeTabs:true}).catch(e=>console.warn('persistence',e.code))}catch(e){toast(e.message);return showSetup()}
+ auth.onAuthStateChanged(u=>{stopUser();if(u){S.user=u;loadCache(u.uid);startUser()}else{Object.assign(S,{user:null,me:null,group:null,gid:null,lg:null,members:{},trips:[],log:[],trip:null,resumed:false,pax:null,fl:{},hist:'viaggi'});showLogin()}})}
+function bindStatic(){$('#bInfo').onclick=showInfo;$('#bSet').onclick=showSettings;$('#bOut').onclick=logout;$('#mClose').onclick=closeM;$('#modal').onclick=e=>{if(e.target.id==='modal')closeM()};
+ $$('#tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;LS.s('tab',S.tab);scrollTo(0,0);renderAll()});
+ document.addEventListener('visibilitychange',()=>{const T=S.trip;if(!T||T.stopped)return;if(document.hidden)log('viaggio','App in secondo piano','avviso','il sistema può sospendere il GPS');else wakeOn(true)});
+ addEventListener('online',()=>{updNet();if(S.user)log('sync','Connessione disponibile','ok')});
+ addEventListener('offline',()=>{updNet();if(S.user)log('sync','Connessione assente','avviso','dati salvati in locale')});
+ if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',applyTheme)}
+function stopUser(){S.un.forEach(f=>f());S.un=[];S.gun.forEach(f=>f());S.gun=[]}
+function saveCache(){clearTimeout(saveCache.t);saveCache.t=setTimeout(()=>{if(S.user)LS.s('cache_'+S.user.uid,{me:S.me,group:S.group,members:S.members,trips:S.trips.slice(0,500).map(({traccia,...r})=>r),log:S.log.slice(0,300)})},800)}
+function loadCache(uid){const c=LS.g('cache_'+uid,null);if(!c)return;Object.assign(S,{me:c.me,group:c.group,members:c.members||{},trips:c.trips||[],log:c.log||[]});if(S.group)S.gid=S.group.id;renderAll()}
+function startUser(){const uid=S.user.uid;
+ S.un.push(db.collection('users').doc(uid).onSnapshot(d=>{S.me=d.exists?d.data():null;
+  if(!S.me||!S.me.gruppoId){if(d.metadata.fromCache&&!d.exists&&navigator.onLine)return;if(S.screen!=='onboard')showOnboard();return}
+  if(S.lg!==S.me.gruppoId)listenGroup(S.me.gruppoId);saveCache();renderAll()},e=>toast(e.message)))}
+function listenGroup(gid){S.gun.forEach(f=>f());S.gun=[];if(S.group&&S.group.id!==gid){S.group=null;S.trips=[];S.log=[]}S.lg=S.gid=gid;
+ const g=G(),er=e=>{console.warn(e);if(e.code==='permission-denied')toast('⛔ '+e.message,5000)};
+ S.gun.push(g.onSnapshot(d=>{S.group=d.exists?{id:d.id,...d.data()}:null;flushLogQ();resumeCheck();saveCache();renderAll()},er));
+ S.gun.push(db.collection('users').where('gruppoId','==',gid).onSnapshot(q=>{q.forEach(d=>{S.members[d.id]=d.data()});saveCache();renderAll()},er));
+ S.gun.push(g.collection('viaggi').orderBy('inizio','desc').limit(3000).onSnapshot({includeMetadataChanges:true},q=>{S.trips=q.docs.map(d=>({id:d.id,...d.data()}));S.pending=q.metadata.hasPendingWrites;updNet();saveCache();renderAll()},er));
+ S.gun.push(g.collection('registro').orderBy('data','desc').limit(800).onSnapshot(q=>{S.log=q.docs.map(d=>({id:d.id,...d.data()}));saveCache();if(S.tab==='storico'&&S.hist==='registro')renderAll()},er))}
+
+function showSetup(){S.screen='setup';shell(false);
+ main(`<div class=card><h2>☁️ ${t('setupT')}</h2><ol class=steps>${t('setupSteps')}</ol><div class=row><button class=btn id=cpR>📋 ${t('copyRules')}</button></div>
+ <label>firebaseConfig<textarea id=cfg rows=7 placeholder='apiKey: "…", authDomain: "…", projectId: "…", appId: "…"'></textarea></label>
+ <button class="btn pri big" id=cfgOk>${t('saveCfg')}</button><p class="sm mu" style="margin-top:10px">${t('setupNote')}</p></div>`);
+ $('#cpR').onclick=()=>copyTxt(RULES);$('#cfgOk').onclick=()=>{const c=parseCfg($('#cfg').value);if(!c)return toast(t('cfgErr'));LS.s('fbcfg',c);location.reload()}}
+function parseCfg(s){const o={};String(s).replace(/["']?(\w+)["']?\s*:\s*["']([^"']+)["']/g,(m,k,v)=>{o[k]=v});return o.apiKey&&o.projectId?o:null}
+function copyTxt(s){(navigator.clipboard?.writeText(s)||Promise.reject()).then(()=>toast(t('copied')),()=>{const a=document.createElement('textarea');a.value=s;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove();toast(t('copied'))})}
+const em=u=>u.trim().toLowerCase()+'@'+DOM; // il nome utente diventa un'email tecnica per Firebase Auth
+function errMsg(e){const c=e.code||'';return /wrong-password|invalid-credential|user-not-found|invalid-login/.test(c)?t('errCred'):/email-already/.test(c)?t('errUsed'):/weak-password/.test(c)?t('errWeak'):/network/.test(c)?t('errNet'):(e.message||String(e))}
+function showLogin(){S.screen='login';shell(false);let reg=false;
+ main(`<div class="card auth"><div class=hero>🚗</div><h2>${t('app')}</h2><p class=mu>${t('tagline')}</p>
+ <div class=seg><button id=aL class=on>${t('login')}</button><button id=aR>${t('register')}</button></div>
+ <label>${t('user')}<input id=uU autocomplete=username autocapitalize=none spellcheck=false></label>
+ <label id=uNw class=hidden>${t('name')}<input id=uN autocomplete=name></label>
+ <label>${t('pass')}<input id=uP type=password autocomplete=current-password></label>
+ <button class="btn pri big" id=uGo>${t('login')}</button><p class="sm mu c" style="margin-top:10px">🔒 ${t('passNote')}</p></div>`);
+ const sw=r=>{reg=r;$('#aL').classList.toggle('on',!r);$('#aR').classList.toggle('on',r);$('#uNw').classList.toggle('hidden',!r);$('#uGo').textContent=t(r?'register':'login');$('#uP').autocomplete=r?'new-password':'current-password'};
+ $('#aL').onclick=()=>sw(false);$('#aR').onclick=()=>sw(true);$('#uP').onkeydown=e=>{if(e.key==='Enter')$('#uGo').click()};
+ $('#uGo').onclick=async()=>{const u=$('#uU').value.trim(),p=$('#uP').value,n=$('#uN').value.trim();if(!/^[A-Za-z0-9._-]{3,30}$/.test(u))return toast(t('errUser'));if(p.length<6)return toast(t('errWeak'));
+  const b=$('#uGo');b.disabled=true;
+  try{if(reg){const c=await auth.createUserWithEmailAndPassword(em(u),p);db.collection('users').doc(c.user.uid).set({nome:n||u,utente:u.toLowerCase(),lingua:LANG,creato:Date.now()},{merge:true}).catch(()=>{});log('accesso','Registrazione','ok',u)}
+   else{await auth.signInWithEmailAndPassword(em(u),p);log('accesso','Login','ok',u)}}
+  catch(e){log('accesso',reg?'Registrazione':'Login','negato',u+' · '+(e.code||''));toast(errMsg(e))}finally{if(b.isConnected)b.disabled=false}}}
+function logout(){if(S.trip)return toast(t('tripRun'));if(!confirm(t('logoutQ')))return;log('accesso','Logout','ok');const u=S.user?.uid;closeM();setTimeout(()=>{if(u)LS.d('cache_'+u);auth.signOut()},300)}
+
+/* ---- 7. PROFILO, VEICOLO E GRUPPO ---- */
+function vehForm(m){const v=m.veicolo||{},al=v.al||'benzina',d=DEFV[al];return `<label>${t('name')}<input id=vNome value="${esc(m.nome||'')}"></label>
+<div class=g2><label>${t('brand')}<input id=vMarca value="${esc(v.marca||'')}"></label><label>${t('model')}<input id=vMod value="${esc(v.modello||'')}"></label></div>
+<div class=g2><label>${t('plate')}<input id=vTarga value="${esc(v.targa||'')}" autocapitalize=characters></label><label>${t('fuelType')}<select id=vAl>${Object.keys(DEFV).map(k=>`<option value=${k} ${k===al?'selected':''}>${t('al_'+k)}</option>`).join('')}</select></label></div>
+<label>${t('cons')} (<span id=vUn>${UNIT[al]}/100 km</span>)</label><div class=g3><label>${t('consU')}<input id=vCu type=number step=0.1 inputmode=decimal value="${v.cu??d.cu}"></label><label>${t('consE')}<input id=vCe type=number step=0.1 inputmode=decimal value="${v.ce??d.ce}"></label><label>${t('consA')}<input id=vCa type=number step=0.1 inputmode=decimal value="${v.ca??d.ca}"></label></div>
+<button class=btn id=vTyp type=button>✨ ${t('typical')}</button>`}
+function bindVeh(){const s=$('#vAl'),f=()=>{const d=DEFV[s.value];$('#vCu').value=d.cu;$('#vCe').value=d.ce;$('#vCa').value=d.ca;$('#vUn').textContent=UNIT[s.value]+'/100 km'};s.onchange=f;$('#vTyp').onclick=f}
+function readProfile(){const nome=$('#vNome').value.trim();if(!nome){toast(t('nameReq'));return null}
+ return{nome,veicolo:{marca:$('#vMarca').value.trim(),modello:$('#vMod').value.trim(),targa:$('#vTarga').value.trim().toUpperCase(),al:$('#vAl').value,cu:num($('#vCu').value),ce:num($('#vCe').value),ca:num($('#vCa').value)}}}
+function showOnboard(){S.screen='onboard';shell(false,true);const m=S.me||{};
+ main(`<div class=card><h2>👋 ${t('welcome')}</h2><p class="mu sm">${t('obIntro')}</p>${vehForm(m)}</div>
+ <div class=card><h3>➕ ${t('grpNew')}</h3><label>${t('grpName')}<input id=gN placeholder="Es. Pendolari ufficio"></label><button class="btn pri big" id=gC>${t('create')}</button></div>
+ <div class=card><h3>🔑 ${t('grpJoin')}</h3><label>${t('code')}<input id=gJ maxlength=6 autocapitalize=characters style="letter-spacing:3px;font-weight:700"></label><button class="btn big" id=gJb>${t('join')}</button></div>`);
+ bindVeh();$('#gC').onclick=createGroup;$('#gJb').onclick=joinGroup}
+const genCode=()=>Array.from({length:6},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+async function createGroup(){const p=readProfile();if(!p)return;const uid=S.user.uid,name=$('#gN').value.trim()||'Gruppo';let code=genCode();
+ try{const ex=await db.collection('gruppi').doc(code).get().catch(()=>null);if(ex&&ex.exists)code=genCode();
+  db.collection('gruppi').doc(code).set({nome:name,azienda:'',creato:Date.now(),creatore:uid,membri:[uid],prezzi:{...DEFP},tariffaKm:.08,caselli:{},tratte:{}}).catch(e=>toast(e.message));
+  db.collection('users').doc(uid).set({...p,gruppoId:code},{merge:true}).catch(e=>toast(e.message));S.screen='';log('dati','Gruppo creato','ok',code)}catch(e){toast(e.message)}}
+async function joinGroup(){const p=readProfile();if(!p)return;const code=$('#gJ').value.trim().toUpperCase();if(code.length!==6)return toast(t('errCode'));if(!navigator.onLine)return toast(t('needNet'));
+ try{const ref=db.collection('gruppi').doc(code),d=await ref.get({source:'server'});if(!d.exists)return toast(t('errCode'));const g=d.data();
+  if(!g.membri.includes(S.user.uid)){if(g.membri.length>=MAXM)return toast(t('errFull'));await ref.update({membri:firebase.firestore.FieldValue.arrayUnion(S.user.uid)})}
+  await db.collection('users').doc(S.user.uid).set({...p,gruppoId:code},{merge:true});S.screen='';log('dati','Ingresso nel gruppo','ok',code)}catch(e){toast(e.message)}}
+
+/* ---- 8. CALCOLO CONSUMI ----
+   Per tipo di strada: consumo dichiarato × correzione per velocità media del tratto
+   (sopra 110 km/h cresce, nel lento/coda cresce) × correzione per guida brusca. */
+function fuel(v,km,tm,ev,tot,g){v=v||{};const al=v.al||'benzina',d=DEFV[al]||DEFV.benzina,cu=+v.cu||d.cu,ce=+v.ce||d.ce,ca=+v.ca||d.ca;
+ const base={a:ca,s:ce,p:ce*.75+cu*.25,u:cu};let q=0;
+ ROADS.forEach(k=>{const K=km[k]||0;if(!K)return;const h=(tm[k]||0)/3600,sp=h>0?K/h:0;let f=1;
+  if(sp>110)f+=(sp-110)*(al==='elettrico'?.016:.012);if(k!=='u'&&sp>0&&sp<35)f+=.1;if(k==='u'&&sp>0&&sp<18)f+=.15;q+=K*base[k]*f/100});
+ const per10=tot>0?ev/tot*10:0,idx=Math.max(0,Math.round(100-per10*12));q*=1+Math.min(.15,per10*.03);
+ const pk=PKEY[al]||'benzina',pr=+((g?.prezzi||{})[pk]??DEFP[pk]);return{q:r2(q),u:UNIT[al]||'l',pr,costo:r2(q*pr),idx}}
+
+/* ---- 9. MOTORE VIAGGIO (tassametro) ---- */
+const kmObj=T=>({a:T.km.a/1000,s:T.km.s/1000,p:T.km.p/1000,u:T.km.u/1000});
+const rollAvg=T=>T.roll.length?T.roll.reduce((a,r)=>a+r[1],0)/T.roll.length:0;
+const saveActive=()=>{if(S.trip)LS.s('act_'+S.trip.autista,S.trip)};
+function newTrip(){return{id:'v'+uid8(),autista:S.user.uid,passeggeri:(S.pax||[]).slice(),inizio:Date.now(),dist:0,km:{a:0,s:0,p:0,u:0},tm:{a:0,s:0,p:0,u:0},vmax:0,cls:'u',pend:null,pc:0,hw:[],hwCur:null,pts:[],lastPt:0,lastCls:-1e9,roll:[],ev:0,gaps:0,last:null,p0:null,osm:0,veh:{...(S.me.veicolo||{al:'benzina'})}}}
+async function startTrip(){if(S.trip)return;if(!('geolocation' in navigator))return toast(t('noGps'));
+ S.trip=newTrip();const sp=sensorsOn(false);gpsOn();renderAll();await sp;wakeOn();saveActive();startTick();
+ log('viaggio','Inizio viaggio','ok',S.trip.passeggeri.map(nameOf).join(', ')||'—')}
+/* Permessi sensori: su iOS vanno chiesti dentro il tocco su VIA */
+async function sensorsOn(resume){const DM=window.DeviceMotionEvent,DO=window.DeviceOrientationEvent;
+ const ask=E=>!E?Promise.resolve('na'):E.requestPermission?(resume?Promise.resolve('skip'):E.requestPermission().catch(()=>'denied')):Promise.resolve('granted');
+ const [a,b]=await Promise.all([ask(DM),ask(DO)]),es=x=>x==='granted'?'concesso':x==='na'?'non disponibile':x==='skip'?'non richiesto (ripresa)':'negato';
+ log('permesso','Accelerometro (DeviceMotion)',es(a));log('permesso','Bussola (DeviceOrientation)',es(b));
+ S.cal={n:0,sum:0,bias:0,t0:Date.now()};S.am=0;S.hd=null;
+ if(a==='granted')addEventListener('devicemotion',onMotion);else if(a!=='skip')toast(t('motionDenied'));
+ if(b==='granted'){addEventListener('deviceorientationabsolute',onOri);addEventListener('deviceorientation',onOri)}}
+function sensorsOff(){if(S.wid!=null)navigator.geolocation.clearWatch(S.wid);S.wid=null;removeEventListener('devicemotion',onMotion);removeEventListener('deviceorientationabsolute',onOri);removeEventListener('deviceorientation',onOri);try{S.wl&&S.wl.release()}catch(e){}S.wl=null;clearInterval(S.ti);S.ti=null}
+/* Accelerometro: calibrazione a zero nei primi 2,5 s, lettura stabilizzata (media mobile), evento brusco > 3 m/s² */
+function onMotion(e){const T=S.trip;if(!T||T.stopped)return;const a=e.acceleration;let m;
+ if(a&&a.x!=null)m=Math.hypot(a.x,a.y,a.z);else{const g=e.accelerationIncludingGravity;if(!g||g.x==null)return;m=Math.abs(Math.hypot(g.x,g.y,g.z)-9.81)}
+ const c=S.cal;if(Date.now()-c.t0<2500){c.n++;c.sum+=m;c.bias=c.sum/c.n;return}
+ S.am=S.am*.8+Math.max(0,m-c.bias)*.2;const now=Date.now();if(S.am>3&&now-(S.lastEv||0)>3000&&(S.v||0)>10){T.ev++;S.lastEv=now}}
+/* Bussola: solo letture assolute (iOS webkitCompassHeading / Android deviceorientationabsolute), media circolare */
+function onOri(e){let h=null;if(e.webkitCompassHeading!=null)h=e.webkitCompassHeading;else if(e.absolute&&e.alpha!=null)h=(360-e.alpha)%360;if(h==null)return;
+ if(S.hd==null)S.hd=h;else{const d=((h-S.hd+540)%360)-180;S.hd=(S.hd+d*.15+360)%360}}
+function gpsOn(){let first=true;S.wid=navigator.geolocation.watchPosition(p=>{if(first){first=false;log('permesso','GPS (posizione)','concesso','±'+Math.round(p.coords.accuracy)+' m')}onPos(p)},
+ e=>{if(e.code===1){log('permesso','GPS (posizione)','negato',e.message);toast(t('gpsDenied'),6000)}else if(e.code===3&&!S.toW){S.toW=1;log('permesso','GPS (posizione)','avviso','timeout')}},{enableHighAccuracy:true,maximumAge:0,timeout:30000})}
+async function wakeOn(quiet){if(!('wakeLock' in navigator)){if(!quiet)log('permesso','Schermo sempre acceso','non disponibile');return}
+ try{S.wl=await navigator.wakeLock.request('screen');if(!quiet)log('permesso','Schermo sempre acceso','concesso')}catch(e){log('permesso','Schermo sempre acceso','negato',e.message)}}
+/* Ogni punto GPS: filtro precisione (≤35 m), scarto salti anomali, stima delle interruzioni, km per tipo di strada */
+function onPos(p){const T=S.trip;if(!T||T.stopped)return;const c=p.coords,la=c.latitude,lo=c.longitude,tt=p.timestamp||Date.now();S.acc=c.accuracy;
+ if(c.heading!=null&&!isNaN(c.heading)&&(c.speed||0)>3)S.gh=c.heading;
+ if(c.accuracy>35)return;
+ if(!T.last){T.last={la,lo,t:tt};T.p0=[r5(la),r5(lo)];T.pts.push(r5(la)+','+r5(lo));return}
+ const d=hav(T.last.la,T.last.lo,la,lo),dt=(tt-T.last.t)/1000;if(dt<=0)return;
+ const vc=d/dt*3.6;if(vc>230&&dt<20)return;
+ const v=(c.speed!=null&&c.speed>=0)?c.speed*3.6:vc;
+ if(dt>20&&d>200){const add=Math.min(d*1.2,8e4);T.km[T.cls]+=add;T.tm[T.cls]+=dt;T.dist+=add;T.gaps++;log('viaggio','Interruzione GPS','avviso',`${Math.round(dt)} s · ${nf(add/1000,1)} km stimati in linea retta`)}
+ else if(d<Math.max(4,c.accuracy*.5)){T.tm[T.cls]+=dt;T.last.t=tt;S.v=v<3?0:v;return}
+ else{T.km[T.cls]+=d;T.tm[T.cls]+=dt;T.dist+=d}
+ S.v=v;if(v>T.vmax&&v<230)T.vmax=v;T.roll.push([tt,v]);while(T.roll.length&&tt-T.roll[0][0]>6e4)T.roll.shift();
+ T.last={la,lo,t:tt};
+ if(T.dist-T.lastPt>=150){T.pts.push(r5(la)+','+r5(lo));T.lastPt=T.dist;if(T.pts.length>800)T.pts=T.pts.filter((_,i,a)=>i%2===0||i===a.length-1)}
+ if(T.dist-T.lastCls>=300){T.lastCls=T.dist;classify(T,la,lo)}}
+/* Tipo di strada: OpenStreetMap (Overpass) se c'è rete, altrimenti stima dalla velocità dell'ultimo minuto */
+function hwCls(g){const hw=g.highway||'',ref=(g.ref||'').toUpperCase();if(!hw||/footway|cycleway|path|steps|pedestrian|track|construction|proposed|bus_guideway|corridor|platform|bridleway/.test(hw))return null;
+ if(/^motorway/.test(hw)||/^A\s?\d/.test(ref))return 'a';if(/^(trunk|primary)/.test(hw)||/^(SS|SR|SGC|E)\s?\d/.test(ref))return 's';if(/^secondary/.test(hw)||/^SP\s?\d/.test(ref))return 'p';return 'u'}
+function classify(T,la,lo){const r=rollAvg(T),h=r>95?'a':r>65?'s':r>40?'p':'u';
+ if(!navigator.onLine||S.ovBusy)return vote(T,h);S.ovBusy=true;const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);
+ const q=`[out:json][timeout:6];way(around:25,${la.toFixed(6)},${lo.toFixed(6)})[highway];out tags;`;
+ fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q),{signal:ac.signal}).then(x=>x.json()).then(j=>{const cs=new Set();(j.elements||[]).forEach(w=>{const k=hwCls(w.tags||{});if(k)cs.add(k)});
+  let c=h;if(cs.size){if(cs.has('a')&&r>70)c='a';else if(h!=='a'&&cs.has(h))c=h;else c=['s','p','u'].find(x=>cs.has(x))||h}T.osm++;vote(T,c)})
+ .catch(()=>vote(T,h)).finally(()=>{clearTimeout(to);S.ovBusy=false})}
+/* Isteresi: il cambio di tipo di strada richiede due conferme consecutive */
+function vote(T,c){if(!T||T.stopped||S.trip!==T)return;if(c===T.cls){T.pend=null;T.pc=0;return}if(T.pend===c)T.pc++;else{T.pend=c;T.pc=1}if(T.pc>=2){setCls(T,c);T.pend=null;T.pc=0}}
+/* Ingresso/uscita autostrada → tratti con punto di entrata e di uscita (per i caselli) */
+function setCls(T,c){const prev=T.cls,L0=T.last;T.cls=c;if(!L0)return;const pt=[r5(L0.la),r5(L0.lo)];
+ if(c==='a'&&!T.hwCur)T.hwCur={e:pt,k0:T.dist};else if(prev==='a'&&T.hwCur){T.hw.push({e:T.hwCur.e,u:pt,km:r2((T.dist-T.hwCur.k0)/1000)});T.hwCur=null}}
+function startTick(){clearInterval(S.ti);S.ti=setInterval(tick,1000)}
+const cardDir=h=>t('dirs').split(',')[Math.round(h/45)%8];
+function tick(){const T=S.trip;if(!T||T.stopped)return;const e=id=>document.getElementById(id);if(Date.now()-(S.svT||0)>5000){S.svT=Date.now();saveActive()}if(!e('lKm'))return;
+ const km=T.dist/1000,ko=kmObj(T),c=fuel(T.veh,ko,T.tm,T.ev,km,S.group),hwk=T.hw.reduce((a,x)=>a+x.km,0)+(T.hwCur?(T.dist-T.hwCur.k0)/1000:0),mv=ROADS.reduce((a,k)=>a+T.tm[k],0);
+ e('lKm').textContent=nf(km,2);e('lTm').textContent=fClock((Date.now()-T.inizio)/1000);e('lEu').textContent=nf(c.costo+hwk*(S.group?.tariffaKm||0),2);
+ e('lV').textContent=Math.round(S.v||0);e('lVm').textContent=mv?Math.round(km/(mv/3600)):0;
+ e('lRd').className='road r'+T.cls;e('lRd').textContent=ROADI[T.cls]+' '+t('r_'+T.cls);
+ e('lAcc').textContent=S.acc!=null?'±'+Math.round(S.acc)+' m':'…';e('lAcc').className=S.acc==null?'':S.acc<=15?'ok':S.acc<=35?'wa':'er';
+ const h=((S.v||0)>10&&S.gh!=null)?S.gh:S.hd;if(h!=null){e('lArr').style.transform=`rotate(${h-90}deg)`;e('lHd').textContent=Math.round(h)+'° '+cardDir(h)}
+ e('lSt').textContent=c.idx;e('lBar').innerHTML=kmBar(ko,km)}
+function stopTrip(){const T=S.trip;if(!T||!confirm(t('confirmStop')))return;T.stopped=true;T.fine=Date.now();const L0=T.last;
+ if(T.hwCur&&L0){T.hw.push({e:T.hwCur.e,u:[r5(L0.la),r5(L0.lo)],km:r2((T.dist-T.hwCur.k0)/1000)});T.hwCur=null}
+ if(L0)T.pts.push(r5(L0.la)+','+r5(L0.lo));sensorsOff();saveActive();log('viaggio','Fine viaggio','ok',fkm(T.dist/1000));renderAll();finishModal()}
+function resumeCheck(){if(S.resumed||!S.group||!S.user)return;S.resumed=true;const a=LS.g('act_'+S.user.uid,null);if(!a)return;S.trip=a;if(a.stopped)return;
+ if(confirm(t('resumeQ'))){gpsOn();sensorsOn(true);wakeOn(true);startTick();log('viaggio','Viaggio ripreso','ok',fkm(a.dist/1000))}
+ else{a.stopped=true;a.fine=a.last?.t||Date.now();if(a.hwCur&&a.last){a.hw.push({e:a.hwCur.e,u:[r5(a.last.la),r5(a.last.lo)],km:r2((a.dist-a.hwCur.k0)/1000)});a.hwCur=null}saveActive();setTimeout(finishModal,300)}}
+
+/* ---- 10. RIEPILOGO FINE VIAGGIO: km reali, caselli appresi, pedaggi ---- */
+function finishModal(){const T=S.trip,g=S.group;if(!T||!g)return;const cas=g.caselli||{},segs=T.hw.filter(h=>h.km>=1);
+ const near=pt=>{let b='new',bd=2500;Object.entries(cas).forEach(([id,c])=>{const d=hav(pt[0],pt[1],c.lat,c.lon);if(d<bd){bd=d;b=id}});return b};
+ const opt=(pt,sel)=>Object.entries(cas).map(([id,c])=>({id,n:c.n,d:hav(pt[0],pt[1],c.lat,c.lon)})).sort((a,b)=>a.d-b.d).slice(0,15).map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.n)} (${nf(c.d/1000,1)} km)</option>`).join('')+`<option value="new" ${sel==='new'?'selected':''}>➕ ${t('newToll')}</option>`;
+ modal(t('tripSummary'),`<div class=kv><div><small>km GPS</small><b>${fkm(T.dist/1000)}</b></div><div><small>${t('duration')}</small><b>${fHM((T.fine-T.inizio)/1000)}</b></div></div>
+ <div class=card2>${kmBar(kmObj(T),T.dist/1000)}</div>
+ <label>${t('odoKm')}<input id=fOdo type=number inputmode=decimal step=0.1 placeholder="${nf(T.dist/1000,1)}"></label><p class="sm mu">${t('odoNote')}</p>
+ ${segs.length?`<h3 style="margin-top:12px">🛣️ ${t('tolls')}</h3>`+segs.map((s,i)=>{const E=near(s.e),U=near(s.u);return `<div class="card2 hws" data-k="${i}"><b class=sm>${t('hwSeg')} ${i+1} · ${fkm(s.km)}</b>
+  <label>${t('entry')}<select class=fE>${opt(s.e,E)}</select></label><input class="fEn ${E==='new'?'':'hidden'}" placeholder="${t('tollName')}">
+  <label>${t('exit')}<select class=fU>${opt(s.u,U)}</select></label><input class="fUn ${U==='new'?'':'hidden'}" placeholder="${t('tollName')}">
+  <label>${t('tollAmt')}<input class=fI type=number inputmode=decimal step=0.1></label><p class="sm mu fK"></p></div>`}).join(''):`<p class="mu sm" style="margin:10px 0">🛤️ ${t('noHw')}</p>`}
+ <label>${t('note')}<input id=fNote></label>
+ <div class=row><button class="btn er" id=fDel>🗑️ ${t('discard')}</button><button class="btn pri" id=fOk>✓ ${t('save')}</button></div>`,b=>{
+  const upd=el=>{const s=segs[+el.dataset.k],E=el.querySelector('.fE').value,U=el.querySelector('.fU').value,kn=(g.tratte||{})[E+'_'+U],inp=el.querySelector('.fI');
+   el.querySelector('.fEn').classList.toggle('hidden',E!=='new');el.querySelector('.fUn').classList.toggle('hidden',U!=='new');
+   const known=E!=='new'&&U!=='new'&&kn!=null;if(!inp.dataset.man)inp.value=known?kn:r2(s.km*(g.tariffaKm||0));el.querySelector('.fK').textContent=known?t('tollKnown'):t('tollEst')};
+  b.querySelectorAll('.hws').forEach(el=>{upd(el);el.querySelectorAll('select').forEach(x=>x.onchange=()=>upd(el));el.querySelector('.fI').oninput=e=>{e.target.dataset.man=1}});
+  $('#fDel').onclick=()=>{if(!confirm(t('confirmDiscard')))return;log('viaggio','Viaggio scartato','ok',fkm(T.dist/1000));LS.d('act_'+T.autista);S.trip=null;closeM();renderAll()};
+  $('#fOk').onclick=()=>saveTrip(segs,b)})}
+function saveTrip(segs,b){const T=S.trip,g=S.group,odo=num($('#fOdo').value),gk=T.dist/1000;
+ const km={},tm={};let tot;
+ if(gk>0){const sc=odo>0?odo/gk:1;ROADS.forEach(k=>{km[k]=r2(T.km[k]/1000*sc)});tot=r2(odo>0?odo:gk)}else{ROADS.forEach(k=>{km[k]=0});km[T.cls]=r2(odo);tot=r2(odo)}
+ ROADS.forEach(k=>{tm[k]=Math.round(T.tm[k])});
+ const sc=gk>0&&odo>0?odo/gk:1,upd={},ped=[];let nC=Object.keys(g.caselli||{}).length;
+ const cName=(id)=>upd['caselli.'+id]?.n||g.caselli?.[id]?.n||'?';
+ b.querySelectorAll('.hws').forEach(el=>{const s=segs[+el.dataset.k];
+  const mk=(v,pt,nm)=>{if(v!=='new')return v;const id='c'+uid8();upd['caselli.'+id]={n:nm||(t('toll')+' '+(++nC)),lat:pt[0],lon:pt[1]};return id};
+  const E=mk(el.querySelector('.fE').value,s.e,el.querySelector('.fEn').value.trim()),U=mk(el.querySelector('.fU').value,s.u,el.querySelector('.fUn').value.trim()),imp=r2(num(el.querySelector('.fI').value));
+  upd['tratte.'+E+'_'+U]=imp;ped.push({e:E,u:U,en:cName(E),un:cName(U),km:r2(s.km*sc),importo:imp})});
+ const mv=ROADS.reduce((a,k)=>a+tm[k],0),c=fuel(T.veh,km,tm,T.ev,tot,g),pedaggio=r2(ped.reduce((a,p)=>a+p.importo,0)),L0=T.last;
+ const doc={autista:T.autista,passeggeri:T.passeggeri,inizio:T.inizio,fine:T.fine,durata:Math.round((T.fine-T.inizio)/1000),km:{tot,...km},tm,fonteKm:odo>0?'odometro':'gps',kmGps:r2(gk),
+  velMedia:r1(mv>0?tot/(mv/3600):0),velMax:r1(T.vmax),eventi:T.ev,indiceGuida:c.idx,veh:T.veh,veicolo:vehLabel(T.veh),carb:{al:T.veh.al||'benzina',q:c.q,u:c.u,prezzo:c.pr,costo:c.costo},
+  pedaggi:ped,pedaggio,costo:r2(c.costo+pedaggio),traccia:T.pts.join(';'),p0:T.p0||null,p1:L0?[r5(L0.la),r5(L0.lo)]:null,gaps:T.gaps,osm:T.osm||0,note:$('#fNote').value.trim(),agg:Date.now(),dev:DEV};
+ G().collection('viaggi').doc(T.id).set(doc).catch(e=>log('sync','Salvataggio viaggio','errore',e.message));
+ if(Object.keys(upd).length)G().update(upd).catch(e=>log('sync','Aggiornamento caselli','errore',e.message));
+ log('viaggio','Viaggio salvato','ok',`${fkm(tot)} · ${eur(doc.costo)}`);LS.d('act_'+T.autista);S.trip=null;closeM();toast('✓ '+t('saved'));renderAll()}
+
+/* ---- 11. SCHERMATA VIAGGIO ---- */
+function kmBar(k,tot){tot=tot||0;return `<div class=kb>${tot?ROADS.map(c=>k[c]>0?`<span class=r${c} style="width:${k[c]/tot*100}%"></span>`:'').join(''):''}</div><div class="kl sm">${ROADS.map(c=>`<span><i class=r${c}></i>${t('r_'+c)} ${nf(k[c]||0,1)}</span>`).join('')}</div>`}
+function tripRow(x){return `<div class=tr data-id="${x.id}"><div class=tdate>${fD(x.inizio)}<br>${fT(x.inizio)}</div><div class=f1><b style="color:${colOf(x.autista)}">●</b> <b>${esc(nameOf(x.autista))}</b>${x.passeggeri?.length?` <span class="sm mu">+${x.passeggeri.length}</span>`:''}<div class="sm mu">${fkm(x.km?.tot)} · ${fHM(x.durata)} · ${nf(x.velMedia,0)} km/h${x.pedaggio>0?' · 🛣️':''}</div></div><b>${eur(x.costo)}</b></div>`}
+const bindRows=el=>el.querySelectorAll('.tr').forEach(r=>r.onclick=()=>tripDetail(r.dataset.id));
+function liveHtml(){return `<div class=meter><div class=mk><span id=lKm>0,00</span><small>km</small></div>
+ <div class=mrow><div><small>${t('time')}</small><b id=lTm>0:00</b></div><div><small>€</small><b id=lEu>0,00</b></div></div>
+ <div class=mrow><div><small>${t('speed')}</small><b id=lV>0</b></div><div><small>${t('avg')}</small><b id=lVm>0</b></div></div>
+ <div class="road ru" id=lRd></div>
+ <div class=mrow3><div><small>GPS</small><b id=lAcc>…</b></div><div><small>${t('compass')}</small><b><span id=lArr class=arr>➤</span> <span id=lHd>—</span></b></div><div><small>${t('style')}</small><b id=lSt>100</b></div></div></div>
+ <div class=card id=lBar></div><button class=stop id=bStop>${t('stop')}</button><p class="mu sm c" style="margin-top:10px">📱 ${t('keepOn')}</p>`}
+function suggestNext(){if((S.group?.membri||[]).length<2)return null;const st=stats(S.trips);if(!st.N)return null;return [...st.L].sort((a,b)=>a.n-b.n||a.km-b.km)[0].uid}
+function rViaggio(){const T=S.trip;
+ if(T&&T.stopped){main(`<div class="card warn"><h3>⏸️ ${t('toConfirm')}</h3><p>${fkm(T.dist/1000)} · ${fHM((T.fine-T.inizio)/1000)}</p><button class="btn pri big" id=bConf>${t('confirmTrip')}</button></div>`);$('#bConf').onclick=finishModal;return}
+ if(T){main(liveHtml());$('#bStop').onclick=stopTrip;tick();return}
+ const me=S.user.uid,v=S.me.veicolo||{},others=mem().filter(m=>m.uid!==me);if(S.pax==null&&others.length)S.pax=others.map(m=>m.uid);const P=S.pax||[],sug=suggestNext(),last=S.trips[0];
+ main(`<div class="card drv"><small>${t('driverToday')}</small><h2>${esc(myName())}</h2><p class="sm mu">🚘 ${esc(vehLabel(v))} · ${t('al_'+(v.al||'benzina'))}</p></div>
+ ${sug?`<div class="card tip">🔄 ${t('nextTurn')} <b>${esc(nameOf(sug))}</b>${sug===me?' ('+t('you')+')':''}</div>`:''}
+ <div class=card><h3>👥 ${t('aboard')}</h3><div class=chips>${others.map(m=>`<button class="chip ${P.includes(m.uid)?'on':''}" data-u="${m.uid}">${esc(m.nome)}</button>`).join('')||`<span class="mu sm">${t('noOthers')} <b>${esc(S.group.id)}</b></span>`}</div></div>
+ <button class=go id=bGo>${t('go')}<small>${t('startTrip')}</small></button>
+ ${last?`<div class=card><h3>${t('lastTrip')}</h3>${tripRow(last)}</div>`:''}`);
+ $$('.chip[data-u]').forEach(b=>b.onclick=()=>{const u=b.dataset.u,Q=S.pax||[];S.pax=Q.includes(u)?Q.filter(x=>x!==u):[...Q,u];b.classList.toggle('on')});
+ $('#bGo').onclick=startTrip;bindRows($('#main'))}
+
+/* ---- 12. EQUIPAGGIO: equilibrio, classifica, grafici ---- */
+const cutoff=p=>p==='all'?0:p==='year'?new Date(new Date().getFullYear(),0,1).getTime():Date.now()-(+p)*864e5;
+const fTrips=p=>S.trips.filter(x=>x.inizio>=cutoff(p));
+function stats(trips){const by={};mem().forEach(m=>{by[m.uid]={uid:m.uid,nome:m.nome,n:0,km:0,costo:0,carb:0,ped:0,sec:0,idxS:0}});
+ trips.forEach(x=>{const r=by[x.autista];if(!r)return;r.n++;r.km+=x.km?.tot||0;r.costo+=x.costo||0;r.carb+=x.carb?.costo||0;r.ped+=x.pedaggio||0;r.sec+=x.durata||0;r.idxS+=x.indiceGuida??100});
+ const L0=Object.values(by),N=L0.reduce((a,r)=>a+r.n,0),K=L0.reduce((a,r)=>a+r.km,0),avg=L0.length?N/L0.length:0;
+ L0.forEach(r=>{r.dev=r.n-avg;r.kmPct=K?r.km/K*100:0;r.eKm=r.km?r.costo/r.km:0;r.idx=r.n?Math.round(r.idxS/r.n):0;r.vm=r.sec?r.km/(r.sec/3600):0});
+ return{L:L0,N,K,avg,maxDev:L0.reduce((a,r)=>Math.max(a,Math.abs(r.dev)),0)}}
+const balLab=st=>!st.N?['bNone',t('balNone')]:st.maxDev<=1?['',t('balOk')]:st.maxDev<=2?['bMid',t('balMid')]:['bBad',t('balBad')];
+function rEquip(){const tr=fTrips(S.per),st=stats(tr),{L:Lr,N,K,avg}=st,[bc,bl]=balLab(st),rk=[...Lr].sort((a,b)=>b.n-a.n||b.km-a.km);
+ const best=f=>{let b=null;Lr.forEach(r=>{if(r.n&&(b==null||f(r)>f(b)))b=r});return b?.uid},bN=best(r=>r.n),bK=best(r=>r.km),bE=best(r=>-r.eKm),bS=best(r=>r.idx);
+ const fair=Lr.length?100/Lr.length:0,sc=Math.max(fair,...Lr.map(r=>r.kmPct),1),sug=suggestNext();
+ const isHw=x=>x.pedaggio>0||(x.km?.a||0)>1,hw=tr.filter(isHw),no=tr.filter(x=>!isHw(x)),av=(a,f)=>a.length?a.reduce((s,x)=>s+(f(x)||0),0)/a.length:0;
+ const months=[],now=new Date();for(let i=5;i>=0;i--)months.push(new Date(now.getFullYear(),now.getMonth()-i,1).getTime());
+ main(`<div class=seg id=per>${PERS.map(([k,l])=>`<button data-p=${k} class="${S.per===k?'on':''}">${t(l)}</button>`).join('')}</div>
+ <div class="card bal ${bc}"><div class=big2>${bl}</div>${N?`<p class=sm>${N} ${t('trips')} · ${fkm(K)} · ${t('fairShare')} ${nf(avg,1)} ${t('tripsEach')}</p>`:''}${sug?`<p class=sm style="margin-top:4px">🔄 ${t('nextTurn')} <b>${esc(nameOf(sug))}</b></p>`:''}</div>
+ <div class=card><h3>🏆 ${t('ranking')}</h3>${rk.map((r,i)=>`<div class=rk><div class=pos>${['🥇','🥈','🥉','4','5'][i]}</div><div class=f1><b>${esc(r.nome)}</b> ${r.uid===bN?'🚗':''}${r.uid===bK?'🛣️':''}${r.uid===bE?'💶':''}${r.uid===bS?'🌿':''}
+ <div class="sm mu">${r.n} ${t('trips')} · ${fkm(r.km)} · ${eur(r.costo)} · ${eur(r.eKm,3)}/km · ${nf(r.vm,0)} km/h · ${t('style')} ${r.n?r.idx:'—'}</div>
+ <div class=dbar><span style="width:${r.kmPct/sc*100}%;background:${colOf(r.uid)}"></span><i style="left:${fair/sc*100}%"></i></div></div>
+ <div class="dev ${r.dev>=0?'dPlus':'dMin'}">${r.dev>0?'+':''}${nf(r.dev,1)}</div></div>`).join('')}<p class="sm mu" style="margin-top:8px">${t('legendRank')}</p></div>
+ <div class=card><h3>${t('chTrips')}</h3><canvas id=c1 height=170></canvas></div>
+ <div class=card><h3>${t('chKm')}</h3><canvas id=c2 height=170></canvas></div>
+ <div class=card><h3>${t('chMonth')}</h3><canvas id=c3 height=190></canvas><div class=leg>${mem().map(m=>`<span><i style="background:${colOf(m.uid)}"></i>${esc(m.nome)}</span>`).join('')}</div></div>
+ <div class=card><h3>🛣️ ${t('cmpT')}</h3><div class=kv><div><small>${t('cmpHw')} (${hw.length})</small><b>${eur(av(hw,x=>x.costo))}</b><small>${fHM(av(hw,x=>x.durata))} · ${fkm(av(hw,x=>x.km?.tot))}</small></div><div><small>${t('cmpNo')} (${no.length})</small><b>${eur(av(no,x=>x.costo))}</b><small>${fHM(av(no,x=>x.durata))} · ${fkm(av(no,x=>x.km?.tot))}</small></div></div>
+ ${hw.length&&no.length?`<p class=sm>💡 ${t('cmpSave')} <b>${eur(av(hw,x=>x.costo)-av(no,x=>x.costo))}</b> ${t('perTrip')}, ${t('cmpMore')} <b>${fHM(Math.max(0,av(no,x=>x.durata)-av(hw,x=>x.durata)))}</b>.</p>`:''}</div>
+ <div class=row><button class="btn pri" id=bPdf>📄 ${t('pdf')}</button><button class=btn id=bCsv>📊 ${t('csv')}</button></div>`);
+ $$('#per button').forEach(b=>b.onclick=()=>{S.per=b.dataset.p;renderAll()});$('#bPdf').onclick=report;$('#bCsv').onclick=()=>csvTrips(tr);
+ bars($('#c1'),Lr.map(r=>r.nome),[{c:Lr.map(r=>colOf(r.uid)),d:Lr.map(r=>r.n)}]);
+ bars($('#c2'),Lr.map(r=>r.nome),[{c:Lr.map(r=>colOf(r.uid)),d:Lr.map(r=>r1(r.km))}]);
+ bars($('#c3'),months.map(m=>new Date(m).toLocaleDateString(loc(),{month:'short'})),mem().map(m=>({c:colOf(m.uid),d:months.map((a,i)=>S.trips.filter(x=>x.autista===m.uid&&x.inizio>=a&&x.inizio<(months[i+1]||Infinity)).length)})),true)}
+/* Grafico a barre su canvas (semplici o impilate), senza librerie */
+function bars(cv,labels,sets,stk){if(!cv)return;const x=cv.getContext&&cv.getContext('2d');if(!x)return;const dpr=devicePixelRatio||1,W=cv.clientWidth||300,H=+cv.getAttribute('height')||180;
+ cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';x.scale(dpr,dpr);const mu=css('--mu'),bd=css('--bd'),n=labels.length;x.font='11px system-ui';
+ const val=i=>stk?sets.reduce((a,s)=>a+(s.d[i]||0),0):Math.max(0,...sets.map(s=>s.d[i]||0)),mxv=Math.max(0,...labels.map((_,i)=>val(i)));
+ if(!n||!mxv){x.fillStyle=mu;x.fillText(t('noData'),10,H/2);return}
+ const mx=mxv*1.15,pl=36,pb=22,pt=8,cw=(W-pl-4)/n,ch=H-pb-pt;x.strokeStyle=bd;x.fillStyle=mu;
+ for(let k=0;k<=4;k++){const y=pt+ch-ch*k/4,v=mx*k/4;x.beginPath();x.moveTo(pl,y);x.lineTo(W,y);x.stroke();x.fillText(v>=100?String(Math.round(v)):nf(v,v<10?1:0),2,y+4)}
+ labels.forEach((l,i)=>{const x0=pl+i*cw;let acc=0;sets.forEach((s,j)=>{const v=s.d[i]||0;if(!v)return;const bw=stk?cw*.6:cw*.7/sets.length,bx=stk?x0+cw*.2:x0+cw*.15+j*bw,h=ch*v/mx;
+  x.fillStyle=Array.isArray(s.c)?s.c[i]:s.c;x.fillRect(bx,pt+ch-acc-h,Math.max(2,bw-2),h);if(stk)acc+=h});
+  x.fillStyle=mu;let lb=String(l);const mc=Math.max(3,Math.floor(cw/6.5));if(lb.length>mc)lb=lb.slice(0,mc-1)+'…';x.fillText(lb,x0+cw/2-x.measureText(lb).width/2,H-6)})}
+
+/* ---- 13. STORICO: viaggi e registro azioni ---- */
+function rStorico(){const h=S.hist;main(`<div class=seg id=hs><button data-h=viaggi class="${h==='viaggi'?'on':''}">🚗 ${t('hViaggi')}</button><button data-h=registro class="${h==='registro'?'on':''}">📜 ${t('hReg')}</button></div><div id=hb></div>`);
+ $$('#hs button').forEach(b=>b.onclick=()=>{S.hist=b.dataset.h;renderAll()});h==='viaggi'?rTrips():rLog()}
+function rTrips(){const f=S.fl,list=S.trips.filter(x=>(!f.m||x.autista===f.m)&&(!f.da||x.inizio>=dayTs(f.da))&&(!f.a||x.inizio<dayTs(f.a)+864e5));
+ $('#hb').innerHTML=`<div class=card><label>${t('driver')}<select id=fM><option value="">${t('all')}</option>${mem().map(m=>`<option value="${m.uid}" ${f.m===m.uid?'selected':''}>${esc(m.nome)}</option>`).join('')}</select></label>
+ <div class=g2><label>${t('from')}<input type=date id=fDa value="${f.da||''}"></label><label>${t('to')}<input type=date id=fA value="${f.a||''}"></label></div><div class=row><button class=btn id=xC>📊 ${t('csv')} (${list.length})</button></div></div>
+ <div class=card>${list.length?list.slice(0,300).map(tripRow).join(''):`<p class=mu>${t('empty')}</p>`}</div>`;
+ $('#fM').onchange=e=>{f.m=e.target.value;renderAll()};$('#fDa').onchange=e=>{f.da=e.target.value;renderAll()};$('#fA').onchange=e=>{f.a=e.target.value;renderAll()};
+ $('#xC').onclick=()=>csvTrips(list);bindRows($('#hb'))}
+function rLog(){const f=S.fl,list=S.log.filter(x=>(!f.ty||x.tipo===f.ty)&&(!f.lda||x.data>=dayTs(f.lda))&&(!f.la||x.data<dayTs(f.la)+864e5));
+ $('#hb').innerHTML=`<div class=card><label>${t('type')}<select id=lT><option value="">${t('all')}</option>${TYS.map(k=>`<option value=${k} ${f.ty===k?'selected':''}>${t('ty_'+k)}</option>`).join('')}</select></label>
+ <div class=g2><label>${t('from')}<input type=date id=lDa value="${f.lda||''}"></label><label>${t('to')}<input type=date id=lA value="${f.la||''}"></label></div><div class=row><button class=btn id=xL>📊 ${t('csv')} (${list.length})</button></div></div>
+ <div class=card>${list.length?list.slice(0,400).map(x=>`<div class=lg><span class=mu>${fDT(x.data)}</span> · <b>${esc(x.nome||'—')}</b><span class=tag>${t('ty_'+x.tipo)}</span><div>${esc(x.azione)} <span class="tag ${/negato|errore|avviso/.test(x.esito)?'neg':/^(ok|concesso)$/.test(x.esito)?'okk':''}">${esc(x.esito)}</span></div>${x.det?`<div class="sm mu">${esc(x.det)}</div>`:''}</div>`).join(''):`<p class=mu>${t('empty')}</p>`}</div>`;
+ $('#lT').onchange=e=>{f.ty=e.target.value;renderAll()};$('#lDa').onchange=e=>{f.lda=e.target.value;renderAll()};$('#lA').onchange=e=>{f.la=e.target.value;renderAll()};$('#xL').onclick=()=>csvLog(list)}
+function tripDetail(id){const x=S.trips.find(y=>y.id===id);if(!x)return;const mine=x.autista===S.user.uid,k=x.km||{},tot=k.tot||0,p0=x.p0,p1=x.p1;
+ const maps=p0&&p1?`https://www.google.com/maps/dir/?api=1&origin=${p0[0]},${p0[1]}&destination=${p1[0]},${p1[1]}&travelmode=driving`:'';
+ modal(`${fD(x.inizio)} · ${nameOf(x.autista)}`,`<canvas id=rC height=200 class=card2 style="padding:0"></canvas>
+ ${maps?`<a class=btn style="display:block;text-align:center;text-decoration:none" href="${maps}" target=_blank rel=noopener>🗺️ ${t('openMaps')}</a>`:''}
+ <div class=kv><div><small>${t('driver')}</small><b>${esc(nameOf(x.autista))}</b></div><div><small>${t('passengers')}</small><b>${(x.passeggeri||[]).map(u=>esc(nameOf(u))).join(', ')||'—'}</b></div>
+ <div><small>${t('start')} → ${t('end')}</small><b>${fT(x.inizio)} → ${fT(x.fine)}</b></div><div><small>${t('duration')}</small><b>${fHM(x.durata)}</b></div>
+ <div><small>${t('kmTot')}</small><b>${fkm(tot)}</b></div><div><small>${t('source')}</small><b>${t('src_'+(x.fonteKm||'gps'))}</b></div>
+ <div><small>${t('avg')}</small><b>${nf(x.velMedia,0)}</b></div><div><small>${t('maxSpeed')}</small><b>${nf(x.velMax,0)} km/h</b></div>
+ <div><small>${t('fuelCost')}</small><b>${eur(x.carb?.costo)}</b><small>${nf(x.carb?.q,2)} ${x.carb?.u||''} × ${eur(x.carb?.prezzo,3)}</small></div><div><small>${t('tolls')}</small><b>${eur(x.pedaggio)}</b></div>
+ <div><small>${t('total')}</small><b>${eur(x.costo)}</b></div><div><small>${t('style')}</small><b>${x.indiceGuida??'—'}/100</b><small>${x.eventi||0} ${t('events')}</small></div></div>
+ <div class=card2>${kmBar(k,tot)}</div>${(x.pedaggi||[]).map(p=>`<div class=sm>🛣️ ${esc(p.en)} → ${esc(p.un)} · ${fkm(p.km)} · ${eur(p.importo)}</div>`).join('')}
+ ${x.gaps?`<p class="sm wa">⚠️ ${x.gaps} ${t('gapsW')}</p>`:''}${x.note?`<p class=sm>📝 ${esc(x.note)}</p>`:''}<p class="sm mu">🚘 ${esc(x.veicolo||'')}</p>
+ ${mine?`<div class=card2><div class=g2><label>${t('kmTot')}<input id=eK type=number step=0.1 inputmode=decimal value="${tot}"></label><label>${t('pedTot')}<input id=eP type=number step=0.1 inputmode=decimal value="${x.pedaggio||0}"></label></div>
+ <div class=row><button class="btn er" id=eD>🗑️ ${t('del')}</button><button class="btn pri" id=eS>✓ ${t('edit')}</button></div></div>`:''}`,()=>{drawRoute($('#rC'),x.traccia);
+  if(mine){const base=x.agg;$('#eS').onclick=()=>editTrip(x,base);$('#eD').onclick=()=>{if(!confirm(t('confirmDel')))return;G().collection('viaggi').doc(x.id).delete().catch(e=>log('sync','Eliminazione viaggio','errore',e.message));log('viaggio','Viaggio eliminato','ok',fD(x.inizio)+' · '+fkm(tot));closeM()}}})}
+/* Correzione manuale: vince l'ultima modifica; se nel frattempo è cambiato altrove lo annota nel registro */
+function editTrip(x,base){const cur=S.trips.find(y=>y.id===x.id);if(cur&&cur.agg!==base)log('sync','Conflitto di modifica','ultima modifica vince',fD(x.inizio));
+ const kk=num($('#eK').value),p=r2(num($('#eP').value)),o=x.km||{},sc=o.tot>0?kk/o.tot:1,km={tot:r2(kk)};ROADS.forEach(c=>{km[c]=r2((o[c]||0)*sc)});
+ const al=x.veh?.al||x.carb?.al||'benzina',c=fuel(x.veh||{al},km,x.tm||{},x.eventi||0,kk,{prezzi:{[PKEY[al]]:x.carb?.prezzo}});
+ G().collection('viaggi').doc(x.id).update({km,fonteKm:'manuale',carb:{...(x.carb||{}),q:c.q,costo:c.costo},pedaggio:p,costo:r2(c.costo+p),agg:Date.now(),dev:DEV}).catch(e=>log('sync','Modifica viaggio','errore',e.message));
+ log('viaggio','Viaggio corretto','ok',`${fkm(o.tot)} → ${fkm(kk)} · ${eur(p)}`);closeM()}
+function drawRoute(cv,str){const x=cv&&cv.getContext&&cv.getContext('2d');if(!x)return;const dpr=devicePixelRatio||1,W=cv.clientWidth||300,H=200;cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';x.scale(dpr,dpr);
+ const pts=(str||'').split(';').map(s=>s.split(',').map(Number)).filter(p=>p.length===2&&!isNaN(p[0])&&!isNaN(p[1]));
+ if(pts.length<2){x.fillStyle=css('--mu');x.font='13px system-ui';x.fillText(t('noData'),12,H/2);return}
+ let a=1e9,b=-1e9,c=1e9,d=-1e9;pts.forEach(([la,lo])=>{a=Math.min(a,la);b=Math.max(b,la);c=Math.min(c,lo);d=Math.max(d,lo)});
+ const k=Math.cos((a+b)/2*Math.PI/180),w=(d-c)*k||1e-6,h=(b-a)||1e-6,s=Math.min((W-30)/w,(H-30)/h),ox=(W-w*s)/2,oy=(H-h*s)/2,P=([la,lo])=>[ox+(lo-c)*k*s,H-oy-(la-a)*s];
+ const g=x.createLinearGradient(0,0,W,0);g.addColorStop(0,'#7c3aed');g.addColorStop(1,'#db2777');x.strokeStyle=g;x.lineWidth=4;x.lineJoin='round';x.lineCap='round';
+ x.beginPath();pts.forEach((p,i)=>{const[q,r]=P(p);i?x.lineTo(q,r):x.moveTo(q,r)});x.stroke();
+ [[pts[0],'#059669'],[pts[pts.length-1],'#dc2626']].forEach(([p,col])=>{const[q,r]=P(p);x.fillStyle=col;x.beginPath();x.arc(q,r,7,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke()})}
+
+/* ---- 14. ESPORTAZIONI: CSV (Excel), report PDF, backup JSON ---- */
+function dl(name,data,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+const cN=(n,d=2)=>(+n||0).toFixed(d).replace('.',',');
+function csvOut(name,rows){dl(name,'\uFEFF'+rows.map(r=>r.map(v=>{v=String(v??'');return /[;"\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(';')).join('\r\n'),'text/csv;charset=utf-8')}
+function csvTrips(list){const H=['Data','Inizio','Fine','Autista','Passeggeri','Veicolo','Alimentazione','Km totali','Km autostrada','Km statali','Km provinciali','Km urbane','Fonte km','Durata min','Vel. media km/h','Vel. max km/h','Indice guida','Eventi bruschi','Carburante','Unità','Prezzo €','Costo carburante €','Pedaggio €','Costo totale €','Caselli','Partenza','Arrivo','Note'];
+ csvOut(`viaggi_${stamp()}.csv`,[H,...list.map(x=>{const k=x.km||{};return[fD(x.inizio),fT(x.inizio),fT(x.fine),nameOf(x.autista),(x.passeggeri||[]).map(nameOf).join(', '),x.veicolo,x.carb?.al,cN(k.tot,1),cN(k.a,1),cN(k.s,1),cN(k.p,1),cN(k.u,1),x.fonteKm,Math.round((x.durata||0)/60),cN(x.velMedia,1),cN(x.velMax,1),x.indiceGuida,x.eventi,cN(x.carb?.q),x.carb?.u,cN(x.carb?.prezzo,3),cN(x.carb?.costo),cN(x.pedaggio),cN(x.costo),(x.pedaggi||[]).map(p=>p.en+' → '+p.un).join(' | '),x.p0?x.p0.join(', '):'',x.p1?x.p1.join(', '):'',x.note]})]);
+ log('dati','Esportazione CSV viaggi','ok',list.length+' righe')}
+function csvLog(list){csvOut(`storico-azioni_${stamp()}.csv`,[['Data','Ora','Utente','Tipo','Azione','Esito','Dettaglio','Dispositivo'],...list.map(x=>[fD(x.data),new Date(x.data).toLocaleTimeString('it-IT'),x.nome,x.tipo,x.azione,x.esito,x.det,x.dev])]);log('dati','Esportazione CSV storico azioni','ok',list.length+' righe')}
+function report(){const p=S.per,pl=t(PERS.find(x=>x[0]===p)[1]),tr=fTrips(p),st=stats(tr),g=S.group,rk=[...st.L].sort((a,b)=>b.n-a.n);
+ $('#print').innerHTML=`<div class=ph><div><h1>🚗 ${t('app')}</h1><div>${esc(g.nome)}${g.azienda?' · '+esc(g.azienda):''}</div></div><div class=r>${t('period')}: ${pl}<br>${t('generated')} ${fDT(Date.now())}<br>${t('by')} ${esc(myName())}</div></div>
+ <h2>${t('balance')}: ${balLab(st)[1]}</h2><p>${st.N} ${t('trips')} · ${fkm(st.K)} · ${t('fairShare')} ${nf(st.avg,1)} ${t('tripsEach')}</p>
+ <table><tr><th>${t('driver')}</th><th>${t('trips')}</th><th>${t('dev')}</th><th>km</th><th>${t('share')}</th><th>${t('fuelCost')}</th><th>${t('tolls')}</th><th>${t('total')}</th><th>€/km</th><th>${t('avg')}</th><th>${t('style')}</th></tr>
+ ${rk.map(r=>`<tr><td>${esc(r.nome)}</td><td>${r.n}</td><td>${r.dev>0?'+':''}${nf(r.dev,1)}</td><td>${nf(r.km,1)}</td><td>${nf(r.kmPct,0)}%</td><td>${eur(r.carb)}</td><td>${eur(r.ped)}</td><td>${eur(r.costo)}</td><td>${nf(r.eKm,3)}</td><td>${nf(r.vm,0)}</td><td>${r.n?r.idx:'—'}</td></tr>`).join('')}</table>
+ <h2>${t('tripList')}</h2><table><tr><th>${t('start')}</th><th>${t('driver')}</th><th>${t('passengers')}</th><th>km</th><th>${t('r_a')} km</th><th>${t('duration')}</th><th>${t('avg')}</th><th>${t('tolls')}</th><th>${t('total')}</th></tr>
+ ${tr.map(x=>`<tr><td>${fDT(x.inizio)}</td><td>${esc(nameOf(x.autista))}</td><td>${(x.passeggeri||[]).map(u=>esc(nameOf(u))).join(', ')}</td><td>${nf(x.km?.tot,1)}</td><td>${nf(x.km?.a,1)}</td><td>${fHM(x.durata)}</td><td>${nf(x.velMedia,0)}</td><td>${eur(x.pedaggio)}</td><td>${eur(x.costo)}</td></tr>`).join('')}</table>
+ <p class=foot>${t('repFoot')} · ${t('app')} ${VER}</p>`;
+ log('dati','Report PDF','ok',pl);toast(t('pdfHint'));setTimeout(()=>print(),400)}
+function exportJSON(){dl(`viaggio-condiviso_backup_${stamp()}.json`,JSON.stringify({app:'viaggio-condiviso',ver:VER,data:Date.now(),gruppo:S.group,membri:S.members,viaggi:S.trips,registro:S.log}),'application/json');log('dati','Backup esportato','ok',S.trips.length+' viaggi')}
+function importJSON(f){const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.app!=='viaggio-condiviso'||!Array.isArray(d.viaggi))throw 0;if(!confirm(t('impQ')))return;
+ const cur=Object.fromEntries(S.trips.map(x=>[x.id,x]));let n=0;d.viaggi.forEach(x=>{const{id,...rest}=x;if(!id)return;const c=cur[id];if(c&&(c.agg||0)>=(rest.agg||0))return;G().collection('viaggi').doc(id).set(rest).catch(()=>{});n++});
+ const gd=d.gruppo||{},upd={};Object.entries(gd.caselli||{}).forEach(([k,v])=>{if(!(S.group.caselli||{})[k])upd['caselli.'+k]=v});Object.entries(gd.tratte||{}).forEach(([k,v])=>{if((S.group.tratte||{})[k]==null)upd['tratte.'+k]=v});
+ if(Object.keys(upd).length)G().update(upd).catch(()=>{});log('dati','Backup importato','ok',n+' viaggi');toast(t('impOk')+': '+n)}catch(e){toast(t('impErr'))}};r.readAsText(f)}
+
+/* ---- 15. IMPOSTAZIONI ---- */
+function showSettings(){if(!S.group)return;const m=S.me||{},g=S.group,p={...DEFP,...(g.prezzi||{})};
+ modal(t('settings'),`<div class=card><h3>👤 ${t('profile')} · 🚘 ${t('vehicle')}</h3>${vehForm(m)}</div>
+ <div class=card><h3>👥 ${t('sGroup')}</h3><label>${t('grpName')}<input id=sGn value="${esc(g.nome)}"></label><label>${t('company')}<input id=sGa value="${esc(g.azienda||'')}"></label>
+ <label>${t('inviteCode')}</label><div class=row style="margin-top:0"><input readonly value="${esc(g.id)}" style="margin:0;font-weight:800;letter-spacing:3px;flex:2"><button class=btn id=sCp>📋 ${t('copy')}</button></div>
+ <p class="sm mu" style="margin-top:8px">${t('members')} (${(g.membri||[]).length}/${MAXM}): ${mem().map(x=>esc(x.nome)).join(', ')}</p></div>
+ <div class=card><h3>⛽ ${t('sPrices')}</h3><div class=g2>${PF.map(([k,l])=>`<label>${t(l)}<input type=number step=0.001 inputmode=decimal id=pr_${k} value="${p[k]}"></label>`).join('')}<label>${t('tariffa')}<input type=number step=0.001 inputmode=decimal id=sTar value="${g.tariffaKm??.08}"></label></div><p class="sm mu">${t('priceNote')}</p></div>
+ <button class="btn pri big" id=sSave>💾 ${t('save')}</button>
+ <div class=card style="margin-top:12px"><h3>⚙️ ${t('sApp')}</h3><div class=g2><label>${t('lang')}<select id=sL><option value=it ${LANG==='it'?'selected':''}>Italiano</option><option value=en ${LANG==='en'?'selected':''}>English</option></select></label>
+ <label>${t('theme')}<select id=sT>${['auto','light','dark'].map(x=>`<option value=${x} ${LS.g('theme','auto')===x?'selected':''}>${t('th_'+x)}</option>`).join('')}</select></label></div>
+ <h3 style="margin-top:10px">💾 ${t('backup')}</h3><div class=row><button class=btn id=bE>⬇️ ${t('bExp')}</button><button class=btn id=bI>⬆️ ${t('bImp')}</button></div><input type=file id=fI accept=".json,application/json" class=hidden>
+ <div class=row>${FB_CONFIG?'':`<button class=btn id=bRc>☁️ ${t('resetCfg')}</button>`}<button class="btn er" id=bLv>🚪 ${t('leave')}</button></div>
+ <p class="sm mu c" style="margin-top:12px">${t('app')} · ${t('version')} ${VER}</p></div>`,()=>{bindVeh();
+  $('#sCp').onclick=()=>copyTxt(g.id);$('#bE').onclick=exportJSON;$('#bI').onclick=()=>$('#fI').click();$('#fI').onchange=e=>{if(e.target.files[0])importJSON(e.target.files[0])};
+  $('#sL').onchange=e=>{LANG=e.target.value;LS.s('lang',LANG);i18n();db.collection('users').doc(S.user.uid).set({lingua:LANG},{merge:true}).catch(()=>{});showSettings();renderAll()};
+  $('#sT').onchange=e=>{LS.s('theme',e.target.value);applyTheme();renderAll()};
+  if($('#bRc'))$('#bRc').onclick=()=>{if(confirm(t('resetCfg')+'?')){LS.d('fbcfg');location.reload()}};
+  $('#bLv').onclick=()=>{if(S.trip)return toast(t('tripRun'));if(!confirm(t('confirmLeave')))return;log('dati','Uscita dal gruppo','ok',g.id);
+   G().update({membri:firebase.firestore.FieldValue.arrayRemove(S.user.uid)}).catch(()=>{});db.collection('users').doc(S.user.uid).set({gruppoId:null},{merge:true}).catch(()=>{});
+   S.gun.forEach(f=>f());S.gun=[];Object.assign(S,{group:null,gid:null,lg:null,trips:[],log:[],pax:null,screen:''});closeM()};
+  $('#sSave').onclick=()=>{const pr=readProfile();if(!pr)return;db.collection('users').doc(S.user.uid).set(pr,{merge:true}).catch(e=>log('sync','Salvataggio profilo','errore',e.message));
+   const pz={};PF.forEach(([k])=>{pz[k]=num($('#pr_'+k).value)});G().update({nome:$('#sGn').value.trim()||g.nome,azienda:$('#sGa').value.trim(),prezzi:pz,tariffaKm:num($('#sTar').value)}).catch(e=>log('sync','Salvataggio gruppo','errore',e.message));
+   log('dati','Impostazioni salvate','ok');toast(t('saveOk'));closeM()}})}
+
+/* ---- 16. INFORMAZIONI ---- */
+function infoHtml(){const steps=`<ol class=steps>${t('setupSteps')}</ol><div class=row><button class=btn id=iR>📋 ${t('copyRules')}</button></div>`;
+ if(LANG==='en')return `<p><b>Shared Ride</b> is a comparative taximeter for colleagues who commute by rotating cars (2–5 people). It does <b>not</b> split costs: it checks that <b>driving turns are balanced</b> – how many times each person took the car, how many km and at what cost.</p>
+ <h3>🧭 Structure</h3><ul><li><b>🚗 Trip</b> – the driver of the day signs in, ticks who is on board and taps <b>GO</b>. The meter shows km, time, estimated cost, speed, road type, GPS accuracy, compass and driving style. <b>END TRIP</b> opens a summary to confirm.</li>
+ <li><b>🏆 Crew</b> – balance status, driver ranking, charts, motorway vs main road comparison, PDF report and CSV, filtered by period.</li>
+ <li><b>🗂️ History</b> – trip list with route and corrections; <b>Activity log</b> with sign-ins, permissions (GPS, sensors, screen) and sync, filterable and exportable.</li>
+ <li><b>⚙️ Settings</b> – profile and vehicle, group and invite code, fuel prices, language, theme, JSON backup. <b>ℹ️</b> this guide, <b>⏻</b> sign out.</li></ul>
+ <h3>📏 How it calculates</h3><ul><li><b>Km</b> from GPS (points worse than ±35 m and jumps are discarded; gaps are estimated in straight line +20% and flagged). Odometer km can replace GPS km.</li>
+ <li><b>Road type</b> from OpenStreetMap every 300 m when online, otherwise from the last-minute average speed; a change needs two confirmations.</li>
+ <li><b>Tolls</b>: motorway entry/exit are detected; the first time you name the toll gates and type the receipt amount, then the route is learned and applied automatically.</li>
+ <li><b>Fuel</b>: declared consumption per road type, increased above 110 km/h, in slow traffic and with harsh driving, × group price.</li>
+ <li><b>Balance</b>: fair share = trips ÷ members; within ±1 trip = balanced, ±2 = slight imbalance, beyond = rebalance.</li></ul>
+ <h3>☁️ Cloud & offline</h3><p>Each person has a username and password (handled by Firebase). Data sync across devices; offline everything keeps working and is sent when the connection returns (yellow dot = pending, green = synced, grey = offline). Last edit wins and conflicts are logged. The running trip is also saved locally and can be resumed.</p>
+ <h3>🔒 Permissions & privacy</h3><p>GPS, motion sensors and screen wake are requested only when tapping GO; each request and its result is logged. Routes are personal data visible only to group members; drivers can fix or delete their trips. Signing out removes local data from the device.</p>
+ <h3>⚠️ Limits</h3><p>With the screen off or the app in background the browser pauses GPS: keep the app open in the holder. Road type, estimated tolls and consumption are estimates, not tax documents.</p>
+ <h3>🛠️ Cloud setup</h3>${steps}<p class="sm mu c" style="margin-top:12px">${t('version')} ${VER}</p>`;
+ return `<p><b>Viaggio condiviso</b> è un tassametro comparativo per chi va al lavoro con l'auto a rotazione (da 2 a 5 persone). <b>Non divide i costi</b>: serve a verificare che <b>i turni di guida siano equilibrati</b> – quante volte ciascuno ha preso la macchina, quanti km ha fatto e quanto gli è costato.</p>
+ <h3>🧭 Struttura</h3><ul><li><b>🚗 Viaggio</b> – l'autista del giorno entra con il suo account, spunta chi è a bordo e preme <b>VIA</b>. Il tassametro mostra km, tempo, costo stimato, velocità attuale e media, tipo di strada, precisione GPS, bussola e stile di guida. <b>FINE VIAGGIO</b> apre il riepilogo da confermare (km del contachilometri, caselli, pedaggi, note).</li>
+ <li><b>🏆 Equipaggio</b> – stato di equilibrio dei turni, chi deve guidare per riequilibrare, classifica autisti, grafici (viaggi, km, mesi), confronto autostrada/statale, report PDF ed export CSV, con filtro per periodo.</li>
+ <li><b>🗂️ Storico</b> – elenco viaggi con dettaglio, disegno del percorso, link a Mappe e correzioni; <b>Storico azioni</b> con accessi, permessi (GPS, sensori, schermo acceso), viaggi e sincronizzazione, filtrabile per data e tipo ed esportabile in CSV.</li>
+ <li><b>⚙️ Impostazioni</b> – profilo e veicolo, gruppo e codice di invito, prezzi carburante, lingua, tema, backup JSON. <b>ℹ️</b> questa guida, <b>⏻</b> esci.</li></ul>
+ <h3>📏 Come calcola</h3><ul><li><b>Km</b>: dal GPS, scartando i punti imprecisi (oltre ±35 m) e i salti anomali. Se il GPS si interrompe (galleria, app in pausa) il tratto mancante è stimato in linea retta +20% e segnalato. A fine viaggio puoi sostituire i km con quelli del contachilometri.</li>
+ <li><b>Tipo di strada</b>: con rete, ogni 300 m la posizione è confrontata con le strade di OpenStreetMap (autostrada, statale, provinciale, urbana); senza rete si stima dalla velocità media dell'ultimo minuto. Il cambio di tipo richiede due conferme consecutive.</li>
+ <li><b>Pedaggi</b>: ingresso e uscita dall'autostrada sono rilevati dal GPS. La prima volta indichi i caselli e l'importo dello scontrino: l'app impara la tratta e la volta dopo applica l'importo da sola. Le tratte nuove sono stimate con la tariffa €/km delle impostazioni.</li>
+ <li><b>Consumi</b>: per ogni tipo di strada si usa il consumo dichiarato del veicolo (urbano / extraurbano / autostrada), aumentato sopra i 110 km/h, nel traffico lento e con guida brusca, moltiplicato per il prezzo impostato dal gruppo.</li>
+ <li><b>Stile di guida</b>: l'accelerometro, calibrato a zero nei primi secondi del viaggio, conta frenate e accelerazioni brusche (indice 0–100).</li>
+ <li><b>Equilibrio</b>: quota equa = viaggi totali ÷ membri. Scarto entro ±1 viaggio = equilibrato, fino a ±2 = leggero squilibrio, oltre = da riequilibrare. «Tocca a» indica chi ha guidato meno.</li></ul>
+ <h3>☁️ Cloud e offline</h3><p>Ognuno ha nome utente e password (gestiti da Firebase, mai salvati in chiaro). I dati del gruppo si sincronizzano su tutti i dispositivi; senza rete l'app continua a funzionare e invia tutto al ritorno della connessione (pallino giallo = in attesa, verde = sincronizzato, grigio = offline). Se due persone modificano lo stesso dato vince l'ultima modifica, annotata nello Storico azioni. Il viaggio in corso è salvato anche sul dispositivo: se l'app si chiude puoi riprenderlo.</p>
+ <h3>🔒 Permessi e privacy</h3><p>GPS, sensori di movimento e schermo acceso vengono chiesti solo premendo VIA; ogni richiesta e il suo esito finiscono nello Storico azioni. Se un permesso viene negato l'app lo segnala. I percorsi sono dati personali: li vedono solo i membri del gruppo e ogni autista può correggere o eliminare i propri viaggi. Uscendo dall'account i dati locali del dispositivo vengono rimossi.</p>
+ <h3>⚠️ Limiti</h3><p>Con lo schermo spento o l'app in secondo piano il browser sospende il GPS: tieni l'app aperta sul supporto. Tipo di strada, pedaggi stimati e consumi sono stime correggibili, non documenti fiscali.</p>
+ <h3>🛠️ Configurazione cloud</h3>${steps}<p class="sm mu c" style="margin-top:12px">${t('version')} ${VER}</p>`}
+function showInfo(){modal('ℹ️ '+t('info'),`<div class=info>${infoHtml()}</div>`,()=>{$('#iR').onclick=()=>copyTxt(RULES)})}
+
+boot();
+</script>
+</body>
+</html>

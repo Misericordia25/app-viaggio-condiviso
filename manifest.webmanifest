@@ -1,0 +1,15 @@
+{
+  "name": "Viaggio condiviso",
+  "short_name": "Viaggio",
+  "description": "Tassametro comparativo per auto a rotazione: equilibrio dei turni, km, pedaggi e consumi",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0a1e",
+  "theme_color": "#6d28d9",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
