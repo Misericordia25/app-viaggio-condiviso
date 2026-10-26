@@ -1,5 +1,5 @@
 /* Genera Chiamata – service worker: rende l'app installabile e utilizzabile senza rete */
-const C='gc-v1.1.0';
+const C='gc-v1.1.1';
 const LIBH=/^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|www\.gstatic\.com)\//; // solo librerie in cache, mai i dati Firestore
 const PRE=['./','./index.html',
  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
@@ -15,7 +15,8 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.a
 self.addEventListener('fetch',e=>{
   const q=e.request;if(q.method!=='GET')return;
   if(q.mode==='navigate'){ // pagina: prima la rete (aggiornamenti), senza rete la copia in cache
-    e.respondWith(fetch(q).then(r=>{const k=r.clone();caches.open(C).then(c=>c.put('./index.html',k));return r})
+    const p=new URL(q.url).pathname,sc=new URL('./',location).pathname,own=p===sc||p===sc+'index.html'; // salva solo la pagina di questa app
+    e.respondWith(fetch(q).then(r=>{if(own&&r.ok){const k=r.clone();caches.open(C).then(c=>c.put('./index.html',k))}return r})
       .catch(()=>caches.match('./index.html',{ignoreSearch:true}).then(r=>r||caches.match('./'))));return}
   if(!LIBH.test(q.url)&&new URL(q.url).origin!==location.origin)return; // Firestore e altri servizi: sempre dalla rete
   e.respondWith(caches.match(q).then(r=>r||fetch(q).then(n=>{if(n.ok||n.type==='opaque'){const k=n.clone();caches.open(C).then(c=>c.put(q,k))}return n})));
